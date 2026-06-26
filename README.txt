@@ -1,0 +1,36 @@
+Swing Lab PWA v19 full mockup
+
+Includes:
+- Landing / Welcome
+- Dashboard
+- Upload / record video
+- Video player with timeline
+- Manual phase marking
+- Capture generation
+- Report placeholder
+- Local history metadata
+- Compare selector and overlay viewer
+- Profile/settings
+
+Cloudflare analysis engine support is included as a configurable prototype.
+Use the "Load engine" button on Home or open index.html with ?engine=https://your-worker-url.
+When the engine is online, uploaded videos are sent to /analyze and returned phase estimates are applied to the review.
+No service worker is registered to avoid cache issues during design iteration.
+
+V20 fix: Sign in now reliably opens the dashboard/home zone from the landing screen.
+
+V21 fix: Sign in is now an internal anchor fallback plus inline JS. It should open the dashboard even if app.js has issues.
+
+V22 fix:
+- Sign in and Create account now navigate directly to dashboard.html.
+- This does not depend on JavaScript transitions.
+- dashboard.html opens directly in the app/dashboard zone.
+
+V24:
+- Loading a video opens the review/key phases screen.
+- Tapping the video opens fullscreen analysis.
+- Fullscreen player is compact and fixed to the bottom.
+- Drawing tools are available in draggable panels.
+- Tools: select/move, line, angle, circle, box, freehand.
+- Style panel: colors, stroke thickness, clear all.
+- Delete selected, undo, guides, view toggle, speed, frame stepping.
