@@ -2,21 +2,27 @@
   "name": "Swing Lab",
   "short_name": "Swing Lab",
   "description": "Premium mobile golf swing analysis PWA prototype.",
+  "id": "./",
   "start_url": "./index.html",
+  "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen", "minimal-ui"],
   "background_color": "#010201",
-  "theme_color": "#010201",
+  "theme_color": "#061407",
   "orientation": "portrait",
+  "categories": ["sports", "health", "productivity"],
   "icons": [
     {
       "src": "assets/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "assets/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

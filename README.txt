@@ -12,10 +12,11 @@ Includes:
 - Compare selector and overlay viewer
 - Profile/settings
 
+Installable PWA support is included with manifest, service worker and mobile app icons.
 Cloudflare analysis engine support is included as a configurable prototype.
 Use the "Load engine" button on Home or open index.html with ?engine=https://your-worker-url.
 When the engine is online, uploaded videos are sent to /analyze and returned phase estimates are applied to the review.
-No service worker is registered to avoid cache issues during design iteration.
+The service worker caches the app shell for a reliable installed-app launch.
 
 V20 fix: Sign in now reliably opens the dashboard/home zone from the landing screen.
 
@@ -34,3 +35,8 @@ V24:
 - Tools: select/move, line, angle, circle, box, freehand.
 - Style panel: colors, stroke thickness, clear all.
 - Delete selected, undo, guides, view toggle, speed, frame stepping.
+
+V25:
+- Adds install buttons for Android/Chrome and iOS guidance.
+- Registers sw.js so GitHub Pages can expose the installable app prompt.
+- Replaces the mobile app icon with a clearer Swing Lab launcher button.

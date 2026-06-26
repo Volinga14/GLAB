@@ -6,10 +6,12 @@
 <meta name="theme-color" content="#010201" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Swing Lab" />
 <title>Swing Lab</title>
 <link rel="manifest" href="manifest.webmanifest" />
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
-<link rel="apple-touch-icon" href="assets/icon-192.png" />
+<link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192.png" />
+<link rel="apple-touch-icon" sizes="512x512" href="assets/icon-512.png" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -28,6 +30,7 @@
       <p><span>Advanced insights. Precise data.</span><span>Better decisions on every shot.</span></p>
       <button class="sign-in-btn sign-in-simple" type="button" data-action="go-home"><span class="button-text">Sign in</span></button>
       <button class="create-account" type="button" data-action="go-home">Create account</button>
+      <button class="install-link" type="button" data-action="install-app">Install app</button>
     </section>
   </main>
 
@@ -43,7 +46,7 @@
           </button>
         </header>
         <section class="welcome-block"><h2>Welcome back!</h2><p>Ready to keep improving your game.</p></section>
-        <section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><button type="button" data-action="load-engine">Load engine</button></section>
+        <section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Load engine</button><button type="button" data-action="install-app">Install</button></span></section>
         <section class="section-head"><h3>Your latest analysis</h3><button class="link-button" data-nav="history">View all <span>›</span></button></section>
         <section class="latest-carousel" id="latestCarousel"></section>
         <section class="section-head solo-head"><h3>Quick actions</h3></section>

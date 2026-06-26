@@ -2097,6 +2097,25 @@ textarea:focus-visible {
   font-weight: 850;
   white-space: nowrap;
 }
+.engine-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+.install-link {
+  margin-top: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--green-strong);
+  font-size: .82rem;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+.install-link[hidden],
+.engine-actions button[hidden] {
+  display: none;
+}
 .analysis-progress[hidden] {
   display: none;
 }
@@ -2175,6 +2194,14 @@ textarea:focus-visible {
     min-height: 31px;
     margin-top: 5px;
     padding: 5px 8px;
+  }
+  #screenHome .engine-actions {
+    gap: 4px;
+  }
+  #screenHome .engine-strip button {
+    min-height: 26px;
+    padding: 0 8px;
+    font-size: .6rem;
   }
   #screenHome .section-head {
     margin: 7px 0 4px;
