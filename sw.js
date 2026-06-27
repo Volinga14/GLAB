@@ -1,4 +1,4 @@
-const CACHE_NAME = 'swing-lab-pwa-v25-20260626';
+const CACHE_NAME = 'swing-lab-pwa-v26-20260628';
 const APP_SHELL = [
   './',
   './index.html',

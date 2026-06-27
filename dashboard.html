@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="512x512" href="assets/icon-512.png" />
-<link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="styles.css?v=26-20260628" />
 </head>
 <body>
 <div class="app-shell">
@@ -23,18 +23,18 @@
       <div class="screen-inner home-fit">
         <header class="topbar">
           <img class="topbar-logo" src="assets/logo.png" alt="Swing Lab">
-          <button class="circle-btn" type="button" data-modal-title="Notifications are not ready yet.">
+          <span class="topbar-actions"><button class="circle-btn" type="button" data-modal-title="Notifications are not ready yet.">
             <svg viewBox="0 0 24 24"><path d="M12 3.4a5 5 0 0 0-5 5v1.34c0 .77-.2 1.52-.59 2.18l-1.07 1.86A1.64 1.64 0 0 0 6.76 16.2h10.48a1.64 1.64 0 0 0 1.42-2.46l-1.07-1.86A4.3 4.3 0 0 1 17 9.74V8.4a5 5 0 0 0-5-5Z"/></svg><span class="dot"></span>
-          </button>
+          </button><button class="circle-btn profile-top-btn" type="button" data-nav="profile" aria-label="Profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.1" r="3.8"/><path d="M4.4 20.1c0-3.4 3.3-5.8 7.6-5.8s7.6 2.4 7.6 5.8"/></svg></button></span>
         </header>
-        <section class="welcome-block"><h2>Welcome back!</h2><p>Ready to keep improving your game.</p></section>
-        <section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Load engine</button><button type="button" data-action="install-app">Install</button></span></section>
+        <section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Engine URL</button><button type="button" data-action="install-app">Install</button></span></section>
         <section class="section-head"><h3>Your latest analysis</h3><button class="link-button" data-nav="history">View all <span>›</span></button></section>
         <section class="latest-carousel" id="latestCarousel"></section>
         <section class="section-head solo-head"><h3>Quick actions</h3></section>
         <section class="quick-grid">
           <button class="quick-card quick-card-primary" data-nav="upload"><span class="quick-icon square-plus"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6.8 3.8h10.4a3 3 0 0 1 3 3v10.4a3 3 0 0 1-3 3H6.8a3 3 0 0 1-3-3V6.8a3 3 0 0 1 3-3Z" stroke="rgba(245,250,245,.9)" stroke-width="1.8" fill="none"/></svg></span><strong>New analysis</strong><span>Upload a swing video and mark the key phases</span><em>Start</em></button>
           <button class="quick-card quick-card-secondary" data-nav="compare"><span class="quick-icon compare-icon"><svg viewBox="0 0 24 24"><path d="M4.8 5.4h7.2v7.2H4.8zM12.2 11.4h7.2v7.2h-7.2z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8.4" cy="8" r="1.45"/><circle cx="15.8" cy="14" r="1.45"/></svg></span><strong>Compare swings</strong><span>Review timing and notes across saved sessions</span><em>Compare</em></button>
+          <button class="quick-card quick-card-tertiary" data-nav="history"><span class="quick-icon"><svg viewBox="0 0 24 24"><path d="M5 19.4V12a1 1 0 0 1 2 0v7.4H5Zm6 0V5.8a1 1 0 0 1 2 0v13.6h-2Zm6 0V9.2a1 1 0 1 1 2 0v10.2h-2Z"/></svg></span><strong>Swings</strong><span>Rename, review or delete saved sessions</span><em>Open</em></button>
         </section>
         <button class="streak-card" data-nav="history"><span class="streak-icon"><svg viewBox="0 0 24 24"><path d="M7 4.3h10.2a1 1 0 0 1 .95 1.31l-1.04 3.13h1.4A1.5 1.5 0 0 1 20 10.26c0 3.08-2.44 5.6-5.5 5.73A4.92 4.92 0 0 1 13 18.9V20h2.1a1 1 0 1 1 0 2H8.9a1 1 0 1 1 0-2H11v-1.1a4.92 4.92 0 0 1-1.5-2.91C6.44 15.86 4 13.34 4 10.26a1.5 1.5 0 0 1 1.5-1.5h1.4Z"/></svg></span><span class="streak-copy"><strong>Analysis streak</strong><span>You have saved <em id="streakCount">0 swings</em> on this device.</span></span><span class="streak-arrow">›</span></button>
       </div>
@@ -61,7 +61,7 @@
       <header class="screen-header review-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><input id="reviewTitleInput" class="review-title-input" value="Review swing" aria-label="Review name"><p id="reviewSubtitle">Manual phase review</p></div><button class="header-capture-btn" data-action="capture-phases">Captures</button><button class="circle-btn" data-action="save-session"><svg viewBox="0 0 24 24"><path d="M5 3.6h11.4L20 7.2V19a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V5a1.4 1.4 0 0 1 1-1.4Zm2 2v5h8v-5H7Zm0 9.2v3.6h10v-3.6H7Z"/></svg></button></header>
       <div class="review-layout">
         <section class="video-card"><div class="video-wrap analysis-video-wrap"><video id="swingVideo" playsinline preload="metadata"></video><canvas id="drawCanvas"></canvas><div class="video-empty" id="videoEmpty"><span>No video loaded</span></div><button type="button" class="open-editor-hint" data-fs-action="open">Tap for fullscreen analysis</button>
-</div><div class="analysis-progress" id="analysisProgress" hidden><span></span><strong>Analyzing swing</strong><em id="analysisProgressText">Waiting for engine...</em></div><div class="video-controls"><button class="mini-btn" data-action="back-frame">-1f</button><button class="play-toggle" data-action="play-toggle"><svg viewBox="0 0 24 24"><path d="M8.5 6.6c0-.8.86-1.3 1.56-.89l8.02 4.78c.68.41.68 1.39 0 1.8l-8.02 4.78a1.03 1.03 0 0 1-1.56-.89V6.6Z"/></svg></button><button class="mini-btn" data-action="forward-frame">+1f</button></div><input id="timeline" class="timeline" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTimeLabel">0.00s</span><span id="durationLabel">0.00s</span></div></section>
+</div><div class="analysis-progress" id="analysisProgress" hidden><span></span><strong>Analyzing swing</strong><em id="analysisProgressText">Waiting for engine...</em></div><div class="video-controls"><button class="mini-btn" data-action="back-frame">-1f</button><button class="play-toggle" data-action="play-toggle">Play</button><button class="mini-btn" data-action="forward-frame">+1f</button></div><input id="timeline" class="timeline" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTimeLabel">0.00s</span><span id="durationLabel">0.00s</span></div></section>
         <section class="phase-panel"><div class="phase-top"><h3>Key phases</h3><div class="phase-actions"><button class="soft-link mark-mode-btn" id="markModeBtn" data-action="toggle-mark-mode">Mark</button><button class="soft-link" data-action="clear-phases">Clear</button></div></div><div class="phase-list" id="phaseList"></div><button class="primary-outline" data-nav="results">Open report</button></section>
       </div>
     </section>
@@ -139,9 +139,9 @@
           <button type="button" class="color-dot" data-color="#ff5b5b" style="--c:#ff5b5b"></button>
         </div>
         <div class="option-row">
-          <button type="button" class="style-btn is-active" data-width="2">Fine</button>
-          <button type="button" class="style-btn" data-width="4">Medium</button>
-          <button type="button" class="style-btn" data-width="6">Bold</button>
+          <button type="button" class="style-btn" data-width="3">Fine</button>
+          <button type="button" class="style-btn is-active" data-width="5">Medium</button>
+          <button type="button" class="style-btn" data-width="7">Bold</button>
         </div>
         <div class="option-row">
           <button type="button" class="style-btn" data-fs-action="clear">Clear all</button>
@@ -178,6 +178,6 @@
 <div class="mockup-modal" id="mockupModal" hidden><button class="modal-scrim" data-close></button><section class="modal-card"><img class="modal-logo" src="assets/logo.png" alt=""><div class="modal-kicker">SWING LAB</div><h2 id="modalTitle">Not ready yet.</h2><p id="modalText">This feature will be connected in a later version.</p><button class="modal-back" data-close><span></span><strong>Close</strong><svg viewBox="0 0 24 24"><path d="M13.22 4.97a1.05 1.05 0 0 1 1.48 0l5.28 5.28a2.47 2.47 0 0 1 0 3.5l-5.28 5.28a1.05 1.05 0 0 1-1.48-1.48l3.5-3.5H4.9a1.05 1.05 0 1 1 0-2.1h11.82l-3.5-3.5a1.05 1.05 0 0 1 0-1.48Z"/></svg></button></section></div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=26-20260628"></script>
 </body>
 </html>

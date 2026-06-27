@@ -40,3 +40,11 @@ V25:
 - Adds install buttons for Android/Chrome and iOS guidance.
 - Registers sw.js so GitHub Pages can expose the installable app prompt.
 - Replaces the mobile app icon with a clearer Swing Lab launcher button.
+
+V26:
+- Home-first navigation: bottom tabs removed and all main actions moved into Home.
+- Cloudflare engine URL can always be changed from the installed app.
+- Review opens first after upload; fullscreen analysis opens only when tapping the video.
+- Review player controls now match fullscreen play/pause and frame stepping more closely.
+- Saved swings can be renamed or deleted individually.
+- Drawing tools are easier to drag and default to thicker, cleaner lines.
