@@ -14,7 +14,7 @@ Includes:
 
 Installable PWA support is included with manifest, service worker and mobile app icons.
 Cloudflare analysis engine support is included as a configurable prototype.
-Use the "Load engine" button on Home or open index.html with ?engine=https://your-worker-url.
+Use the "Engine URL" button on Home or open index.html with ?engine=https://your-worker-url.
 When the engine is online, uploaded videos are sent to /analyze and returned phase estimates are applied to the review.
 The service worker caches the app shell for a reliable installed-app launch.
 
@@ -48,3 +48,8 @@ V26:
 - Review player controls now match fullscreen play/pause and frame stepping more closely.
 - Saved swings can be renamed or deleted individually.
 - Drawing tools are easier to drag and default to thicker, cleaner lines.
+
+V27:
+- Engine uploads now post a FastAPI-compatible multipart file field first, then retry compatible field names if /api/analyze returns 422.
+- Quick actions now show only New analysis and Compare; saved swings remain available from View all.
+- Cache and asset versions bumped so installed PWAs and GitHub Pages refresh the updated app shell.
