@@ -1,0 +1,124 @@
+/* Sessions and original videos are committed in the same IndexedDB transaction. */
+(() => {
+  'use strict';
+  const LEGACY_KEY = 'swinglab_history_v19';
+  const PHASES = ['Address', 'Takeaway', 'Top', 'Impact', 'Finish'];
+  const clone = value => JSON.parse(JSON.stringify(value));
+  const image = value => typeof value === 'string' &&
+    (/^data:image\/(jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(value) || value === 'assets/analysis-thumb.webp') ? value : '';
+
+  function normalize(value) {
+    if (!value || typeof value !== 'object' || !/^[\w-]{1,100}$/.test(String(value.id || ''))) return null;
+    const phases = {}, captures = {};
+    for (const phase of PHASES) {
+      const time = value.phases?.[phase];
+      if (typeof time === 'number' && Number.isFinite(time) && time >= 0) {
+        phases[phase] = time;
+        const capture = image(value.captures?.[phase]);
+        if (capture) captures[phase] = capture;
+      }
+    }
+    const drawings = Array.isArray(value.drawings) ? value.drawings.filter(shape => {
+      if (!shape || !['line', 'angle', 'circle', 'box', 'free'].includes(shape.type)) return false;
+      if (!/^#[a-f0-9]{6}$/i.test(shape.color || '') || !Number.isFinite(shape.width) || shape.width < 1 || shape.width > 20) return false;
+      const point = p => p && Number.isFinite(p.x) && Number.isFinite(p.y);
+      if (shape.type === 'free') return Array.isArray(shape.points) && shape.points.length <= 10000 && shape.points.every(point);
+      return ['x1', 'y1', 'x2', 'y2', ...(shape.type === 'angle' ? ['x3', 'y3'] : [])].every(key => Number.isFinite(shape[key]));
+    }).slice(0, 1000).map(clone) : [];
+    return {
+      version: 1, id: String(value.id), title: String(value.title || 'Swing session'),
+      fileName: String(value.fileName || ''),
+      date: Number.isFinite(Date.parse(value.date)) ? value.date : new Date().toISOString(),
+      phases, captures, notes: typeof value.notes === 'string' ? value.notes : '',
+      thumb: image(value.thumb), drawings
+    };
+  }
+
+  function createStore() {
+    let database;
+    function open() {
+      if (!database) database = new Promise((resolve, reject) => {
+        if (!globalThis.indexedDB) return reject(new Error('Local storage is unavailable in this browser.'));
+        const request = indexedDB.open('swinglab-sessions', 1);
+        request.onupgradeneeded = () => {
+          for (const name of ['sessions', 'videos', 'meta']) request.result.createObjectStore(name);
+        };
+        request.onsuccess = () => {
+          const db = request.result;
+          db.onversionchange = () => { db.close(); database = null; };
+          resolve(db);
+        };
+        request.onerror = () => { database = null; reject(request.error); };
+        request.onblocked = () => { database = null; reject(new Error('Close other Swing Lab tabs and try again.')); };
+      });
+      return database;
+    }
+    async function transaction(names, mode, run) {
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(names, mode);
+        let result;
+        tx.oncomplete = () => resolve(result);
+        tx.onabort = () => reject(tx.error || new Error('The save was cancelled.'));
+        tx.onerror = () => {}; // onabort reports the failed atomic operation.
+        try { run(tx, value => { result = value; }); } catch (error) { tx.abort(); reject(error); }
+      });
+    }
+    async function init() {
+      let warning = '';
+      const migrated = await transaction(['meta'], 'readonly', (tx, done) => {
+        tx.objectStore('meta').get('legacy-imported').onsuccess = event => done(event.target.result);
+      });
+      if (!migrated) {
+        let legacy = [];
+        try {
+          const raw = localStorage.getItem(LEGACY_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (!Array.isArray(parsed)) throw new Error('Invalid history');
+            legacy = parsed.map(normalize).filter(Boolean);
+            if (legacy.length !== parsed.length) warning = 'Some old sessions could not be read. The original history has been kept.';
+          }
+        } catch {
+          warning = 'The old history could not be read. Its original data has been kept.';
+        }
+        await transaction(['sessions', 'meta'], 'readwrite', tx => {
+          for (const session of legacy) tx.objectStore('sessions').put(session, session.id);
+          tx.objectStore('meta').put(true, 'legacy-imported');
+        });
+      }
+      return { history: await list(), warning };
+    }
+    async function list() {
+      const values = await transaction(['sessions'], 'readonly', (tx, done) => {
+        tx.objectStore('sessions').getAll().onsuccess = event => done(event.target.result);
+      });
+      return values.map(normalize).filter(Boolean).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+    }
+    function save(session, video) {
+      const normalized = normalize(session);
+      if (!normalized) return Promise.reject(new Error('Invalid session.'));
+      return transaction(['sessions', 'videos'], 'readwrite', tx => {
+        tx.objectStore('sessions').put(normalized, normalized.id);
+        if (video) tx.objectStore('videos').put(video, normalized.id);
+      });
+    }
+    function video(id) {
+      return transaction(['videos'], 'readonly', (tx, done) => {
+        tx.objectStore('videos').get(id).onsuccess = event => done(event.target.result || null);
+      });
+    }
+    function remove(id) {
+      return transaction(['sessions', 'videos'], 'readwrite', tx => {
+        for (const name of ['sessions', 'videos']) tx.objectStore(name).delete(id);
+      });
+    }
+    function clear() {
+      return transaction(['sessions', 'videos'], 'readwrite', tx => {
+        for (const name of ['sessions', 'videos']) tx.objectStore(name).clear();
+      });
+    }
+    return { init, list, save, video, remove, clear };
+  }
+  globalThis.SwingLabStorage = { createStore, normalize, clone };
+})();
