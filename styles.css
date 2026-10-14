@@ -2142,6 +2142,9 @@ textarea:focus-visible {
 .analysis-progress strong {
   font-size: .78rem;
 }
+.analysis-progress.is-result span {
+  animation: none;
+}
 .analysis-progress em {
   color: var(--muted);
   font-size: .68rem;

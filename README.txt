@@ -1,4 +1,6 @@
-Swing Lab PWA v19 full mockup
+Swing Lab v29: see README.md for the current implementation, corrections and tests.
+
+Historical changelog — Swing Lab PWA v19 full mockup
 
 Includes:
 - Landing / Welcome

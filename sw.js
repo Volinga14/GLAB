@@ -1,10 +1,12 @@
-const CACHE_NAME = 'swing-lab-pwa-v27-20260628';
+const CACHE_PREFIX = `swing-lab-pwa:${new URL(self.registration.scope).pathname}:`;
+const CACHE_NAME = CACHE_PREFIX + 'v29-20261014';
 const APP_SHELL = [
   './',
   './index.html',
   './dashboard.html',
-  './styles.css',
-  './app.js',
+  './styles.css?v=29-20261014',
+  './session-store.js?v=29-20261014',
+  './app.js?v=29-20261014',
   './manifest.webmanifest',
   './assets/logo.png',
   './assets/icon-192.png',
@@ -15,6 +17,7 @@ const APP_SHELL = [
   './assets/analysis-thumb.webp',
   './assets/contours.svg'
 ];
+const SHELL_URLS = new Set(APP_SHELL.map(path => new URL(path, self.registration.scope).href));
 
 self.addEventListener('install', event => {
   event.waitUntil(
@@ -27,36 +30,36 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
-  if (request.method !== 'GET') return;
+  if (request.method !== 'GET' || request.headers.has('range')) return;
 
   const url = new URL(request.url);
   if (url.origin !== location.origin) return;
 
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      const copy = response.clone();
-      caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+  const navigation = request.mode === 'navigate';
+  const key = navigation ? url.origin + url.pathname : url.href;
+  // API responses, videos and unrelated applications never enter this cache.
+  if (!SHELL_URLS.has(key)) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    if (!navigation) {
+      const cached = await cache.match(key);
+      if (cached) return cached;
+    }
+    try {
+      const response = await fetch(request);
+      if (response.ok) event.waitUntil(cache.put(key, response.clone()).catch(() => {}));
       return response;
-    }))
-  );
+    } catch (error) {
+      const cached = await cache.match(key);
+      if (cached) return cached;
+      throw error;
+    }
+  })());
 });
