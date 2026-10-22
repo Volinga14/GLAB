@@ -2,6 +2,10 @@
 
 Installable web application for reviewing golf swing videos. This checkout is the working source; earlier preview folders outside it are preserved snapshots.
 
+## Local marking lab: v32
+
+The experimental [marking lab](lab/) defines the five phase events and compares a frozen local ONNX candidate with real GLAB snapshots and editable, revisioned references. It is independent of production session data. See [the lab protocol and usage](lab/README.md). Private reference videos and their derived metadata remain in the local pack and are not included in the published site.
+
 ## Pilot frontend: v31
 
 - One canonical interface stylesheet (`ui.css`) with consistent icon slots, touch controls, spacing and screen scrolling. Existing editor rules are isolated in a lower-priority CSS layer.
