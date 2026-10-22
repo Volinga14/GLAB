@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<meta name="theme-color" content="#010201" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
+<meta name="theme-color" content="#ffffff" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-title" content="Swing Lab" />
@@ -12,7 +12,8 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="512x512" href="assets/icon-512.png" />
-<link rel="stylesheet" href="styles.css?v=29-20261014" />
+<link rel="stylesheet" href="styles.css?v=30-20261022" />
+<link rel="stylesheet" href="frontend.css?v=30-20261022" />
 </head>
 <body>
 <div class="app-shell">
@@ -22,25 +23,23 @@
     <section class="app-screen app-home is-current" id="screenHome">
       <div class="screen-inner home-fit">
         <header class="topbar">
-          <img class="topbar-logo" src="assets/logo.png" alt="Swing Lab">
-          <span class="topbar-actions"><button class="circle-btn" type="button" data-modal-title="Notifications are not ready yet.">
+          <img class="topbar-logo" src="assets/wordmark.svg" alt="Swing Lab">
+          <span class="topbar-actions"><button class="circle-btn notification-btn" aria-label="Notifications" type="button" data-modal-title="Notifications are not ready yet.">
             <svg viewBox="0 0 24 24"><path d="M12 3.4a5 5 0 0 0-5 5v1.34c0 .77-.2 1.52-.59 2.18l-1.07 1.86A1.64 1.64 0 0 0 6.76 16.2h10.48a1.64 1.64 0 0 0 1.42-2.46l-1.07-1.86A4.3 4.3 0 0 1 17 9.74V8.4a5 5 0 0 0-5-5Z"/></svg><span class="dot"></span>
-          </button><button class="circle-btn profile-top-btn" type="button" data-nav="profile" aria-label="Profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.1" r="3.8"/><path d="M4.4 20.1c0-3.4 3.3-5.8 7.6-5.8s7.6 2.4 7.6 5.8"/></svg></button></span>
+          </button><button class="circle-btn profile-top-btn" type="button" data-nav="profile" aria-label="Profile"><span data-profile-initials>SL</span></button></span>
         </header>
-        <section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Engine URL</button><button type="button" data-action="install-app">Install</button></span></section>
-        <section class="section-head"><h3>Your latest analysis</h3><button class="link-button" data-nav="history">View all <span>›</span></button></section>
-        <section class="latest-carousel" id="latestCarousel"></section>
-        <section class="section-head solo-head"><h3>Quick actions</h3></section>
-        <section class="quick-grid">
-          <button class="quick-card quick-card-primary" data-nav="upload"><span class="quick-icon square-plus"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M6.8 3.8h10.4a3 3 0 0 1 3 3v10.4a3 3 0 0 1-3 3H6.8a3 3 0 0 1-3-3V6.8a3 3 0 0 1 3-3Z" stroke="rgba(245,250,245,.9)" stroke-width="1.8" fill="none"/></svg></span><strong>New analysis</strong><span>Upload a swing video and mark the key phases</span><em>Start</em></button>
-          <button class="quick-card quick-card-secondary" data-nav="compare"><span class="quick-icon compare-icon"><svg viewBox="0 0 24 24"><path d="M4.8 5.4h7.2v7.2H4.8zM12.2 11.4h7.2v7.2h-7.2z" fill="none" stroke="currentColor" stroke-width="1.7"/><circle cx="8.4" cy="8" r="1.45"/><circle cx="15.8" cy="14" r="1.45"/></svg></span><strong>Compare swings</strong><span>Review timing and notes across saved sessions</span><em>Compare</em></button>
-        </section>
-        <button class="streak-card" data-nav="history"><span class="streak-icon"><svg viewBox="0 0 24 24"><path d="M7 4.3h10.2a1 1 0 0 1 .95 1.31l-1.04 3.13h1.4A1.5 1.5 0 0 1 20 10.26c0 3.08-2.44 5.6-5.5 5.73A4.92 4.92 0 0 1 13 18.9V20h2.1a1 1 0 1 1 0 2H8.9a1 1 0 1 1 0-2H11v-1.1a4.92 4.92 0 0 1-1.5-2.91C6.44 15.86 4 13.34 4 10.26a1.5 1.5 0 0 1 1.5-1.5h1.4Z"/></svg></span><span class="streak-copy"><strong>Analysis streak</strong><span>You have saved <em id="streakCount">0 swings</em> on this device.</span></span><span class="streak-arrow">›</span></button>
+
+        <section class="welcome-block"><h2 id="homeGreeting">Hi, golfer</h2><p>Ready for your next swing?</p></section>
+        <button class="new-analysis-btn" type="button" data-nav="upload"><span class="plus-icon" aria-hidden="true">+</span>New analysis</button>
+        <section class="section-head"><h3>Latest analysis</h3><button class="link-button" data-nav="history">View all &#8250;</button></section>
+        <section class="latest-carousel" id="latestCarousel" aria-label="Recent analyses"></section>
+        <button class="compare-shortcut" type="button" data-nav="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2"/></svg><span>Compare swings</span><span class="chevron" aria-hidden="true">&#8250;</span></button>
+        <section aria-labelledby="streakHeading"><div class="streak-head"><div><h3 id="streakHeading">Analysis streak</h3><p id="streakCount">0 sessions this week</p></div><span>Keep your practice going.</span></div><button type="button" class="streak-week" id="streakWeek" data-nav="history" aria-label="View practice history"></button></section>
       </div>
     </section>
 
     <section class="app-screen" id="screenUpload">
-      <header class="screen-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>New analysis</h2><p>Upload or record your swing</p></div></header>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>New analysis</h2><p>Upload or record your swing</p></div></header>
       <div class="screen-scroll">
         <section class="upload-hero-card upload-studio">
           <div class="upload-studio-top"><div class="upload-icon upload-icon-large"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4.2 4.2M12 4 7.8 8.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.8 14.6v3.2a2.4 2.4 0 0 0 2.4 2.4h9.6a2.4 2.4 0 0 0 2.4-2.4v-3.2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><span class="upload-mode">Manual review</span></div>
@@ -57,7 +56,7 @@
     </section>
 
     <section class="app-screen" id="screenReview">
-      <header class="screen-header review-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><input id="reviewTitleInput" class="review-title-input" value="Review swing" aria-label="Review name"><p id="reviewSubtitle">Manual phase review</p></div><button class="header-capture-btn" data-action="capture-phases">Captures</button><button class="circle-btn" data-action="save-session"><svg viewBox="0 0 24 24"><path d="M5 3.6h11.4L20 7.2V19a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V5a1.4 1.4 0 0 1 1-1.4Zm2 2v5h8v-5H7Zm0 9.2v3.6h10v-3.6H7Z"/></svg></button></header>
+      <header class="screen-header review-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><input id="reviewTitleInput" class="review-title-input" value="Review swing" aria-label="Review name"><p id="reviewSubtitle">Manual phase review</p></div><button class="header-capture-btn" data-action="capture-phases">Captures</button><button class="circle-btn" aria-label="Save session" data-action="save-session"><svg viewBox="0 0 24 24"><path d="M5 3.6h11.4L20 7.2V19a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V5a1.4 1.4 0 0 1 1-1.4Zm2 2v5h8v-5H7Zm0 9.2v3.6h10v-3.6H7Z"/></svg></button></header>
       <div class="review-layout">
         <section class="video-card"><div class="video-wrap analysis-video-wrap"><video id="swingVideo" playsinline preload="metadata"></video><canvas id="drawCanvas"></canvas><div class="video-empty" id="videoEmpty"><span>No video loaded</span></div><button type="button" class="open-editor-hint" data-fs-action="open">Tap for fullscreen analysis</button>
 </div><div class="analysis-progress" id="analysisProgress" hidden><span></span><strong>Analyzing swing</strong><em id="analysisProgressText">Waiting for engine...</em></div><div class="video-controls"><button class="mini-btn" data-action="back-frame">-1f</button><button class="play-toggle" data-action="play-toggle">Play</button><button class="mini-btn" data-action="forward-frame">+1f</button></div><input id="timeline" class="timeline" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTimeLabel">0.00s</span><span id="durationLabel">0.00s</span></div></section>
@@ -66,29 +65,39 @@
     </section>
 
     <section class="app-screen" id="screenResults">
-      <header class="screen-header"><button class="back-btn" data-nav="review"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Swing report</h2><p>Manual review summary</p></div></header>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="review"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Swing report</h2><p>Manual review summary</p></div></header>
       <div class="screen-scroll"><section class="report-score"><span>Analysis engine</span><h3>Coming later</h3><p>This version keeps the full video workflow and manual review. Automatic swing analysis will be connected with GLAB in the next phase.</p></section><section class="captures-grid" id="capturesGrid"></section><section class="summary-card"><h3>Session notes</h3><textarea id="sessionNotes" placeholder="Add coach notes, feeling, club, ball flight, or what you want to improve next..."></textarea><button class="primary-solid" data-action="save-session">Save session</button></section></div>
     </section>
 
     <section class="app-screen" id="screenHistory">
-      <header class="screen-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>My swings</h2><p>Saved on this device</p></div></header>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>My swings</h2><p>Saved on this device</p></div></header>
       <div class="screen-scroll"><section class="history-list" id="historyList"></section></div>
     </section>
 
     <section class="app-screen" id="screenCompare">
-      <header class="screen-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Compare</h2><p>Manual comparison</p></div></header>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Compare</h2><p>Manual comparison</p></div></header>
       <div class="screen-scroll"><section class="compare-workspace"><div class="compare-top"><div><h3>Select two swings</h3><p>Compare phase frames, timing gaps and report notes.</p></div><span id="compareCount">0/2</span></div><div id="compareList" class="compare-list selectable"></div><div id="compareOutput" class="compare-output"></div></section></div>
     </section>
 
     <section class="app-screen" id="screenProfile">
-      <header class="screen-header"><button class="back-btn" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Profile</h2><p>Preferences and device data</p></div></header>
-      <div class="screen-scroll"><section class="profile-hero"><div class="avatar">SL</div><div><h3>Swing Lab User</h3><p>Local prototype mode</p></div><span id="profileSwingCount">0 swings</span></section><section class="profile-stats"><article><span>Saved</span><strong id="profileSavedCount">0</strong></article><article><span>Phases</span><strong id="profilePhaseCount">0</strong></article><article><span>Default</span><strong>DTL</strong></article></section><section class="settings-list profile-settings"><label><span>Dominant hand</span><select><option>Right-handed</option><option>Left-handed</option></select></label><label><span>Default view</span><select><option>Down the line</option><option>Face on</option></select></label><label><span>Preferred club</span><input placeholder="7 Iron"></label><button class="primary-outline danger" data-action="clear-history">Clear local history</button></section></div>
+      <header class="topbar profile-topbar"><img class="topbar-logo" src="assets/wordmark.svg" alt="Swing Lab. Analyze. Understand. Improve."><button class="circle-btn" type="button" data-action="focus-settings" aria-label="Open settings"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 3 3 3-1 1-3 3-1 1-4-3-2V6l-3-2-3 1Z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></button></header>
+      <div class="screen-scroll">
+        <h2 class="visually-hidden">Profile</h2>
+        <section class="profile-hero"><div class="avatar" data-profile-initials>SL</div><div><h3 id="profileName">Swing Lab User</h3><button class="edit-profile-link" type="button" data-action="edit-profile">Edit profile &#8250;</button></div><span id="profileSwingCount">0 swings</span></section>
+        <form class="profile-edit" id="profileEditForm" hidden><label for="profileNameInput">Your name<input id="profileNameInput" autocomplete="name" maxlength="60" placeholder="Your name"></label><button class="primary-solid" type="submit">Save profile</button></form>
+        <section class="profile-stats"><article><span>My swings</span><strong id="profileSavedCount">0</strong></article><article><span>This month</span><strong id="profileMonthCount">0</strong></article><article><span>Phases</span><strong id="profilePhaseCount">0</strong></article></section>
+        <p class="device-note">Stored on this device</p>
+        <h3 class="profile-section-title">Swing preferences</h3>
+        <section class="settings-list profile-settings"><label for="profileHand"><span>Dominant hand</span><select id="profileHand"><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label><label for="profileView"><span>Default view</span><select id="profileView"><option value="DTL">Down the line</option><option value="FO">Face on</option></select></label><label for="profileClub"><span>Preferred club</span><input id="profileClub" placeholder="7 Iron" maxlength="60"></label></section>
+        <details class="profile-details" id="profileSettings"><summary>Settings</summary><div><section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Engine URL</button><button type="button" data-action="install-app">Install</button></span></section></div></details>
+        <details class="profile-details"><summary>Data &amp; storage</summary><div class="profile-data-actions"><p>Videos, notes, captures and drawings are saved in this browser. Clearing history removes these sessions from this device.</p><button class="primary-outline danger" type="button" data-action="clear-history">Clear local history</button></div></details>
+      </div>
     </section>
 
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" aria-label="Main navigation">
       <button class="nav-item is-active" data-nav="home"><svg viewBox="0 0 24 24"><path d="M4 10.8 12 4l8 6.8v8.5a.7.7 0 0 1-.7.7h-4.6v-5.5H9.3V20H4.7a.7.7 0 0 1-.7-.7v-8.5Z"/></svg><span>Home</span></button>
-      <button class="nav-item" data-nav="history"><svg viewBox="0 0 24 24"><path d="M5 19.4V12a1 1 0 0 1 2 0v7.4H5Zm6 0V5.8a1 1 0 0 1 2 0v13.6h-2Zm6 0V9.2a1 1 0 1 1 2 0v10.2h-2Z"/></svg><span>Swings</span></button>
-      <button class="nav-item nav-center" data-nav="upload"><span class="center-ring"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>Upload</span></button>
+      <button class="nav-item" data-nav="history"><svg viewBox="0 0 24 24"><path d="M5 19.4V12a1 1 0 0 1 2 0v7.4H5Zm6 0V5.8a1 1 0 0 1 2 0v13.6h-2Zm6 0V9.2a1 1 0 1 1 2 0v10.2h-2Z"/></svg><span>My swings</span></button>
+      <button class="nav-item nav-center" data-nav="upload"><span class="center-ring"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>New analysis</span></button>
       <button class="nav-item" data-nav="compare"><svg viewBox="0 0 24 24"><path d="M4.6 4.6h7v7h-7zM12.4 12.4h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Compare</span></button>
       <button class="nav-item" data-nav="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.1" r="3.8"/><path d="M4.4 20.1c0-3.4 3.3-5.8 7.6-5.8s7.6 2.4 7.6 5.8"/></svg><span>Profile</span></button>
     </nav>
@@ -174,10 +183,10 @@
   </div>
 </section>
 
-<div class="mockup-modal" id="mockupModal" hidden><button class="modal-scrim" data-close></button><section class="modal-card"><img class="modal-logo" src="assets/logo.png" alt=""><div class="modal-kicker">SWING LAB</div><h2 id="modalTitle">Not ready yet.</h2><p id="modalText">This feature will be connected in a later version.</p><button class="modal-back" data-close><span></span><strong>Close</strong><svg viewBox="0 0 24 24"><path d="M13.22 4.97a1.05 1.05 0 0 1 1.48 0l5.28 5.28a2.47 2.47 0 0 1 0 3.5l-5.28 5.28a1.05 1.05 0 0 1-1.48-1.48l3.5-3.5H4.9a1.05 1.05 0 1 1 0-2.1h11.82l-3.5-3.5a1.05 1.05 0 0 1 0-1.48Z"/></svg></button></section></div>
+<div class="mockup-modal" id="mockupModal" hidden><button class="modal-scrim" data-close></button><section class="modal-card"><img class="modal-logo" src="assets/wordmark.svg" alt=""><div class="modal-kicker">SWING LAB</div><h2 id="modalTitle">Not ready yet.</h2><p id="modalText">This feature will be connected in a later version.</p><button class="modal-back" data-close><span></span><strong>Close</strong><svg viewBox="0 0 24 24"><path d="M13.22 4.97a1.05 1.05 0 0 1 1.48 0l5.28 5.28a2.47 2.47 0 0 1 0 3.5l-5.28 5.28a1.05 1.05 0 0 1-1.48-1.48l3.5-3.5H4.9a1.05 1.05 0 1 1 0-2.1h11.82l-3.5-3.5a1.05 1.05 0 0 1 0-1.48Z"/></svg></button></section></div>
 </div>
 
-<script src="session-store.js?v=29-20261014"></script>
-<script src="app.js?v=29-20261014"></script>
+<script src="session-store.js?v=30-20261022"></script>
+<script src="app.js?v=30-20261022"></script>
 </body>
 </html>

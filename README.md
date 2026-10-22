@@ -2,6 +2,17 @@
 
 Installable web application for reviewing golf swing videos. This checkout is the working source; earlier preview folders outside it are preserved snapshots.
 
+## Light frontend: v30
+
+- White and mint surfaces, a compact wordmark with the original swing arc and tagline, and a single prominent New analysis entry point.
+- Persistent five-tab navigation: Home, My swings, New analysis, Compare and Profile. Inactive screens are removed from keyboard navigation.
+- Existing upload, camera, phase capture, reports, notes, original-video storage, annotation tools and comparison workflows are retained. The annotation and comparison overlays retain dark controls.
+- Profile name and recording preferences now persist in local browser storage. Engine URL, service status, installation and clearing local history remain available in Profile.
+- Analysis streak shows saved sessions in the current local Monday-to-Sunday week. Multiple sessions on one day count individually, with one practice indicator for that day. Profile counts come from actual stored history.
+- Both entry pages and the new theme/wordmark are included in the versioned offline cache. Session storage and its migration format are unchanged.
+
+Run `npm run test:frontend` for responsive layout, navigation, preferences and activity regression checks. This uses the same Playwright/browser environment options as `test:browser` below.
+
 ## Current correction: v29
 
 - A session owns its original video, notes, phase marks, captures and drawings.

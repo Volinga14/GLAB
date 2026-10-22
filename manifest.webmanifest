@@ -6,11 +6,19 @@
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "fullscreen", "minimal-ui"],
-  "background_color": "#010201",
-  "theme_color": "#061407",
+  "display_override": [
+    "standalone",
+    "fullscreen",
+    "minimal-ui"
+  ],
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait",
-  "categories": ["sports", "health", "productivity"],
+  "categories": [
+    "sports",
+    "health",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "assets/icon-192.png",

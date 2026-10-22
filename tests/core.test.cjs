@@ -18,7 +18,7 @@ async function environment(history=[]){
       dataset:{},style:{setProperty(){}},classList:{toggle(){},add(){},remove(){},contains(){return false}},
       addEventListener(n,f){(listeners[n]||=[]).push(f)},removeEventListener(){},
       querySelector(){return null},querySelectorAll(){return []},pause(){this.paused=true},play(){return Promise.resolve()},
-      removeAttribute(n){this[n]=''},load(){},click(){},getContext(){return {drawImage(){}}},
+      removeAttribute(n){this[n]=''},setAttribute(n,v){this[n]=v},replaceChildren(){},append(){},focus(){},load(){},click(){},getContext(){return {drawImage(){}}},
       dispatchEvent(event){for(const f of listeners[event.type]||[])f(event)},toDataURL(){return 'data:image/jpeg;base64,TkVX'}};
   }
   const document={documentElement:element(),body:element(),
@@ -152,6 +152,6 @@ test('both HTML pages request exactly the scripts and styles that are precached'
   const sw=serviceWorker();const shell=vm.runInContext('Array.from(SHELL_URLS)',sw.context);
   for(const name of ['index.html','dashboard.html']){
     const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/(?:src|href)="([^\"]+\?v=[^\"]+)"/g)].map(m=>m[1]);
-    assert.equal(urls.length,3);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
+    assert.equal(urls.length,4);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
   }
 });
