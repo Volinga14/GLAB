@@ -63,6 +63,7 @@ async function enter(page){if(await page.getByRole('button',{name:'Get started',
       assert.ok(Math.max(...alignment.map(a=>a.baseline))-Math.min(...alignment.map(a=>a.baseline))<=2,`navigation label baselines differ at ${width}`);
       const iconOffsets=await page.locator('.app-screen.is-current .back-btn svg,.app-screen.is-current .circle-btn svg,.app-screen.is-current .choice-icon svg').evaluateAll(icons=>icons.map(svg=>{const i=svg.getBoundingClientRect(),p=svg.parentElement.getBoundingClientRect();return {x:Math.abs(i.left+i.width/2-p.left-p.width/2),y:Math.abs(i.top+i.height/2-p.top-p.height/2)}}));
       assert.ok(iconOffsets.every(i=>i.x<=1&&i.y<=1),`${destination} has an off-center icon at ${width}`);
+      if(destination==='upload'){const copyOffsets=await page.locator('.choice-copy').evaluateAll(groups=>groups.flatMap(group=>Array.from(group.children).map(child=>Math.abs(child.getBoundingClientRect().left-group.getBoundingClientRect().left))));assert.ok(copyOffsets.every(x=>x<=1),`upload labels drift at ${width}`)}
       if(width===390&&['home','profile','upload'].includes(destination))await page.screenshot({path:path.join(artifacts,`frontend-${destination}.png`)});
     }
   }
