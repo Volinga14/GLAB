@@ -2,7 +2,18 @@
 
 Installable web application for reviewing golf swing videos. This checkout is the working source; earlier preview folders outside it are preserved snapshots.
 
-## Light frontend: v30
+## Pilot frontend: v31
+
+- One canonical interface stylesheet (`ui.css`) with consistent icon slots, touch controls, spacing and screen scrolling. Existing editor rules are isolated in a lower-priority CSS layer.
+- Honest account-free first launch, direct return to Home on later visits, an in-app review guide, contextual empty states and accessible dialogs.
+- A guided video → review → report flow, an explicit save action, unsaved/saving/saved status, and non-blocking save confirmation. Capture actions are enabled only when a decoded video and phase marks are available.
+- Searchable history with open, report, rename and delete actions. Comparison keeps the selected pair when a third item is tapped and includes an explicit overlay action.
+- Fullscreen drawing and comparison dialogs support keyboard dismissal and keep background controls out of the focus order. Save image downloads the displayed frame with its annotations.
+- Local pilot feedback notes can be copied for sharing. Nothing is submitted automatically. See [TESTING.md](TESTING.md) for the pilot walkthrough.
+
+Validated on 22 October 2026: all 19 logic tests and 13 browser integration checks passed in Edge. Frontend checks passed at 320×568, 390×844, 768×1024 and 1440×900, including icon centering, navigation baselines, profile persistence, history search, comparison selection and overlay navigation. Real-device camera, codec and installation behavior remain part of the pilot.
+
+### Light interface foundation: v30
 
 - White and mint surfaces, a compact wordmark with the original swing arc and tagline, and a single prominent New analysis entry point.
 - Persistent five-tab navigation: Home, My swings, New analysis, Compare and Profile. Inactive screens are removed from keyboard navigation.

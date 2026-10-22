@@ -5,6 +5,7 @@ const http=require('node:http');
 const assert=require('node:assert/strict');
 const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
 const root=path.resolve(__dirname,'..');
+const artifacts=path.join(root,'.test-artifacts');fs.mkdirSync(artifacts,{recursive:true});
 const hooks='\nglobalThis.testing={state,ready,store,saveSession,openSession,loadVideoFile,setPhase,analyzeWithEngine,handle,deleteSession,clearHistory,capturePhases,renameSession};\n';
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 const boundary=app.indexOf('})();');
@@ -22,7 +23,7 @@ const server=http.createServer((req,res)=>{
 let browser;
 async function check(name,fn){await fn();results.push(name);console.log('PASS '+name)}
 async function ready(page){await page.waitForFunction(()=>window.testing?.state.storageReady);await page.evaluate(()=>testing.handle('go-home'))}
-async function closeModal(page){await page.evaluate(()=>{document.getElementById('mockupModal').hidden=true})}
+async function closeModal(page){if(await page.locator('#mockupModal').isVisible())await page.locator('#mockupModal .modal-back').click()}
 
 (async()=>{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
@@ -57,6 +58,7 @@ async function closeModal(page){await page.evaluate(()=>{document.getElementById
     await page.waitForFunction(()=>document.getElementById('modalTitle').textContent==='Session saved.');
     const result=await page.evaluate(()=>({id:testing.state.current.id,capture:testing.state.current.captures.Impact,saved:testing.state.history[0].notes}));
     assert.ok(result.capture.startsWith('data:image/jpeg;base64,'));assert.equal(result.saved,'Notes A');
+    await page.screenshot({path:path.join(artifacts,'review-report.png')});
   });
   const firstId=await page.evaluate(()=>testing.state.current.id);
   await closeModal(page);
@@ -73,10 +75,15 @@ async function closeModal(page){await page.evaluate(()=>{document.getElementById
   });
   await check('drawings are saved with the session and restored after reload',async()=>{
     await page.evaluate(()=>testing.openSession(testing.state.current.id));
+    await page.screenshot({path:path.join(artifacts,'review-screen.png')});
     await page.click('.open-editor-hint');await page.click('[data-fs-action="toggle-tools"]');await page.click('[data-tool="line"]');
     const bounds=await page.locator('#fullscreenCanvas').boundingBox();
     await page.mouse.move(bounds.x+80,bounds.y+260);await page.mouse.down();await page.mouse.move(bounds.x+250,bounds.y+420);await page.mouse.up();
     assert.equal(await page.evaluate(()=>SwingLabEditor.getDrawings().length),1);
+    await page.screenshot({path:path.join(artifacts,'drawing-editor.png')});
+    const downloadPromise=page.waitForEvent('download');await page.click('[data-fs-action="snapshot"]');const download=await downloadPromise;
+    await download.saveAs(path.join(artifacts,'annotated-frame.png'));
+    assert.ok(fs.statSync(path.join(artifacts,'annotated-frame.png')).size>1000);
     await page.click('[data-fs-action="close"]');await page.click('#screenReview [data-action="save-session"]');
     await page.waitForFunction(()=>!testing.state.storageBusy);await page.reload();await ready(page);
     await page.evaluate(id=>testing.openSession(id),firstId);await page.waitForFunction(()=>document.getElementById('swingVideo').readyState>=2);

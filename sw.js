@@ -1,14 +1,15 @@
 const CACHE_PREFIX = `swing-lab-pwa:${new URL(self.registration.scope).pathname}:`;
-const CACHE_NAME = CACHE_PREFIX + 'v30-20261022';
+const CACHE_NAME = CACHE_PREFIX + 'v31-20261022';
 const APP_SHELL = [
   './',
   './index.html',
   './dashboard.html',
-  './styles.css?v=30-20261022',
-  './session-store.js?v=30-20261022',
-  './app.js?v=30-20261022',
-  './frontend.css?v=30-20261022',
+  './styles.css?v=31-20261022',
+  './session-store.js?v=31-20261022',
+  './app.js?v=31-20261022',
+  './ui.css?v=31-20261022',
   './assets/wordmark.svg',
+  './assets/icons.svg',
   './manifest.webmanifest',
   './assets/logo.png',
   './assets/icon-192.png',

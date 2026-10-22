@@ -12,26 +12,18 @@
 <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="192x192" href="assets/icon-192.png" />
 <link rel="apple-touch-icon" sizes="512x512" href="assets/icon-512.png" />
-<link rel="stylesheet" href="styles.css?v=30-20261022" />
-<link rel="stylesheet" href="frontend.css?v=30-20261022" />
+<link rel="stylesheet" href="styles.css?v=31-20261022" />
+<link rel="stylesheet" href="ui.css?v=31-20261022" />
 </head>
 <body>
 <div class="app-shell">
   <main class="view view-landing is-active" id="landingView">
-    <img class="field-photo" src="assets/field-bg-correct.webp" alt="">
-    <div class="bg-field"></div><div class="bg-vignette"></div>
-    <header class="brand"><img class="brand-logo" src="assets/wordmark.svg" alt="Swing Lab"></header>
-    <section class="hero">
-      <img class="metrics" src="assets/metrics.png" alt="">
-      <img class="golfer" src="assets/golfer.png" alt="">
-      <div class="hero-gradient"></div>
-    </section>
-    <section class="copy">
-      <h1><span>Analyze your swing.</span><span class="green">Improve your game.</span></h1>
-      <p><span>Advanced insights. Precise data.</span><span>Better decisions on every shot.</span></p>
-      <button class="sign-in-btn sign-in-simple" type="button" data-action="go-home"><span class="button-text">Sign in</span></button>
-      <button class="create-account" type="button" data-action="go-home">Create account</button>
-      <button class="install-link" type="button" data-action="install-app">Install app</button>
+    <header class="brand"><img class="brand-logo" src="assets/wordmark.svg" alt="Swing Lab. Analyze. Understand. Improve."></header>
+    <div class="landing-visual"><img src="assets/golfer.png" alt="Golfer practising a swing"></div>
+    <section class="landing-copy"><span class="eyebrow">YOUR GAME. ONE SWING AT A TIME.</span><h1>A better look at<br>your swing.</h1><p>Review your video, capture key moments and see what changes as you practise.</p>
+      <button class="primary-solid landing-start" type="button" data-action="go-home">Get started <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button>
+      <p class="local-intro">No account needed. Your sessions stay on this device.</p>
+      <div class="landing-links"><button class="text-button" type="button" data-action="install-app"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#download"/></svg>Install app</button><button class="text-button" type="button" data-action="account-info">About accounts</button></div>
     </section>
   </main>
 
@@ -42,30 +34,26 @@
       <div class="screen-inner home-fit">
         <header class="topbar">
           <img class="topbar-logo" src="assets/wordmark.svg" alt="Swing Lab">
-          <span class="topbar-actions"><button class="circle-btn notification-btn" aria-label="Notifications" type="button" data-modal-title="Notifications are not ready yet.">
-            <svg viewBox="0 0 24 24"><path d="M12 3.4a5 5 0 0 0-5 5v1.34c0 .77-.2 1.52-.59 2.18l-1.07 1.86A1.64 1.64 0 0 0 6.76 16.2h10.48a1.64 1.64 0 0 0 1.42-2.46l-1.07-1.86A4.3 4.3 0 0 1 17 9.74V8.4a5 5 0 0 0-5-5Z"/></svg><span class="dot"></span>
-          </button><button class="circle-btn profile-top-btn" type="button" data-nav="profile" aria-label="Profile"><span data-profile-initials>SL</span></button></span>
-        </header>
+          <span class="topbar-actions"><button class="circle-btn" type="button" data-action="help" aria-label="How to use Swing Lab"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#help"/></svg></button><button class="circle-btn profile-top-btn" type="button" data-nav="profile" aria-label="Profile"><span data-profile-initials>SL</span></button></span></header>
 
         <section class="welcome-block"><h2 id="homeGreeting">Hi, golfer</h2><p>Ready for your next swing?</p></section>
-        <button class="new-analysis-btn" type="button" data-nav="upload"><span class="plus-icon" aria-hidden="true">+</span>New analysis</button>
-        <section class="section-head"><h3>Latest analysis</h3><button class="link-button" data-nav="history">View all &#8250;</button></section>
+        <button class="new-analysis-btn" type="button" data-nav="upload"><span class="plus-icon"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#plus"/></svg></span>New analysis</button>
+        <section class="section-head"><h3>Latest analysis</h3><button class="link-button" data-nav="history">View all <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button></section>
         <section class="latest-carousel" id="latestCarousel" aria-label="Recent analyses"></section>
-        <button class="compare-shortcut" type="button" data-nav="compare"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2"/></svg><span>Compare swings</span><span class="chevron" aria-hidden="true">&#8250;</span></button>
+        <button class="compare-shortcut" type="button" data-nav="compare"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#compare"/></svg><span>Compare swings</span><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button>
         <section aria-labelledby="streakHeading"><div class="streak-head"><div><h3 id="streakHeading">Analysis streak</h3><p id="streakCount">0 sessions this week</p></div><span>Keep your practice going.</span></div><button type="button" class="streak-week" id="streakWeek" data-nav="history" aria-label="View practice history"></button></section>
       </div>
     </section>
 
     <section class="app-screen" id="screenUpload">
-      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>New analysis</h2><p>Upload or record your swing</p></div></header>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#back"/></svg></button><div><h2>New analysis</h2><p>Upload or record your swing</p></div></header>
       <div class="screen-scroll">
         <section class="upload-hero-card upload-studio">
-          <div class="upload-studio-top"><div class="upload-icon upload-icon-large"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0 4.2 4.2M12 4 7.8 8.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.8 14.6v3.2a2.4 2.4 0 0 0 2.4 2.4h9.6a2.4 2.4 0 0 0 2.4-2.4v-3.2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></div><span class="upload-mode">Manual review</span></div>
-          <h3>Choose your swing source</h3>
-          <p>Start from a saved clip or record a new one. Use a steady frame with the full body visible.</p>
+          <span class="eyebrow">STEP 1 OF 3</span><h3>Start with a video</h3>
+          <p>Choose a clip from your gallery or record your swing. You can review it at your own pace.</p>
           <div class="upload-actions upload-choice-grid">
-            <button class="upload-choice is-primary" data-action="pick-video"><span><svg viewBox="0 0 24 24"><path d="M4.8 5.8a2 2 0 0 1 2-2h10.4a2 2 0 0 1 2 2v12.4a2 2 0 0 1-2 2H6.8a2 2 0 0 1-2-2V5.8Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m7.5 16 3.1-3.3 2.1 2.1 1.3-1.4 2.7 2.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Upload video</strong><em>Gallery</em></button>
-            <button class="upload-choice" data-action="record-video"><span><svg viewBox="0 0 24 24"><path d="M4.8 8.4A2.4 2.4 0 0 1 7.2 6h6.2a2.4 2.4 0 0 1 2.4 2.4v7.2a2.4 2.4 0 0 1-2.4 2.4H7.2a2.4 2.4 0 0 1-2.4-2.4V8.4Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="m15.8 10.1 3.4-2v7.8l-3.4-2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><strong>Record video</strong><em>Camera</em></button>
+            <button class="upload-choice is-primary" type="button" data-action="pick-video"><span class="choice-icon"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#upload"/></svg></span><span class="choice-copy"><strong>Upload video</strong><em>Choose from your gallery</em></span><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button>
+            <button class="upload-choice" type="button" data-action="record-video"><span class="choice-icon"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#video"/></svg></span><span class="choice-copy"><strong>Record video</strong><em>Use your camera</em></span><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button>
           </div>
           <input id="videoInput" type="file" accept="video/*" hidden><input id="cameraInput" type="file" accept="video/*" capture="environment" hidden>
         </section>
@@ -74,53 +62,48 @@
     </section>
 
     <section class="app-screen" id="screenReview">
-      <header class="screen-header review-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><input id="reviewTitleInput" class="review-title-input" value="Review swing" aria-label="Review name"><p id="reviewSubtitle">Manual phase review</p></div><button class="header-capture-btn" data-action="capture-phases">Captures</button><button class="circle-btn" aria-label="Save session" data-action="save-session"><svg viewBox="0 0 24 24"><path d="M5 3.6h11.4L20 7.2V19a1.4 1.4 0 0 1-1.4 1.4H5.4A1.4 1.4 0 0 1 4 19V5a1.4 1.4 0 0 1 1-1.4Zm2 2v5h8v-5H7Zm0 9.2v3.6h10v-3.6H7Z"/></svg></button></header>
-      <div class="review-layout">
-        <section class="video-card"><div class="video-wrap analysis-video-wrap"><video id="swingVideo" playsinline preload="metadata"></video><canvas id="drawCanvas"></canvas><div class="video-empty" id="videoEmpty"><span>No video loaded</span></div><button type="button" class="open-editor-hint" data-fs-action="open">Tap for fullscreen analysis</button></div><div class="analysis-progress" id="analysisProgress" hidden><span></span><strong>Analyzing swing</strong><em id="analysisProgressText">Waiting for engine...</em></div><div class="video-controls"><button class="mini-btn" data-action="back-frame">-1f</button><button class="play-toggle" data-action="play-toggle">Play</button><button class="mini-btn" data-action="forward-frame">+1f</button></div><input id="timeline" class="timeline" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTimeLabel">0.00s</span><span id="durationLabel">0.00s</span></div></section>
-        <section class="phase-panel"><div class="phase-top"><h3>Key phases</h3><div class="phase-actions"><button class="soft-link mark-mode-btn" id="markModeBtn" data-action="toggle-mark-mode">Mark</button><button class="soft-link" data-action="clear-phases">Clear</button></div></div><div class="phase-list" id="phaseList"></div><button class="primary-outline" data-nav="results">Open report</button></section>
+      <header class="screen-header review-header"><button class="back-btn" aria-label="Back to home" data-nav="home"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#back"/></svg></button><div class="header-copy"><input id="reviewTitleInput" class="review-title-input" value="Review swing" aria-label="Review name" maxlength="100"><p id="reviewSubtitle">Manual phase review</p></div><button class="save-button" type="button" data-action="save-session"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#save"/></svg><span>Save</span></button></header>
+      <div class="review-layout"><div class="review-intro"><span class="eyebrow">STEP 2 OF 3 · REVIEW</span><span class="session-status" id="sessionStatus">New session</span></div>
+        <section class="video-card"><div class="video-wrap analysis-video-wrap"><video id="swingVideo" playsinline preload="metadata"></video><canvas id="drawCanvas"></canvas><div class="video-empty" id="videoEmpty"><span>No video loaded</span></div><button type="button" class="open-editor-hint" data-fs-action="open"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#expand"/></svg>Open drawing tools</button></div><div class="analysis-progress" id="analysisProgress" hidden><span></span><strong>Analyzing swing</strong><em id="analysisProgressText">Waiting for engine...</em></div><div class="video-controls"><button class="mini-btn" aria-label="Previous frame" data-action="back-frame">−1 frame</button><button class="play-toggle" data-action="play-toggle">Play</button><button class="mini-btn" aria-label="Next frame" data-action="forward-frame">+1 frame</button></div><input id="timeline" aria-label="Video position" class="timeline" type="range" min="0" max="1000" value="0"><div class="time-row"><span id="currentTimeLabel">0.00s</span><span id="durationLabel">0.00s</span></div></section>
+        <section class="phase-panel"><div class="phase-top"><h3>Key phases</h3><div class="phase-actions"><button class="soft-link mark-mode-btn" id="markModeBtn" data-action="toggle-mark-mode">Mark</button><button class="soft-link" data-action="clear-phases">Clear</button></div></div><p class="phase-help" id="phaseHelp">Pause at a key moment, then tap its phase to mark it.</p><div class="phase-list" id="phaseList"></div><div class="review-actions"><button class="primary-solid" type="button" data-action="capture-phases"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#swings"/></svg>Create captures</button><button class="primary-outline" type="button" data-nav="results">Open report <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button></div></section>
       </div>
     </section>
 
     <section class="app-screen" id="screenResults">
-      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="review"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Swing report</h2><p>Manual review summary</p></div></header>
-      <div class="screen-scroll"><section class="report-score"><span>Analysis engine</span><h3>Coming later</h3><p>This version keeps the full video workflow and manual review. Automatic swing analysis will be connected with GLAB in the next phase.</p></section><section class="captures-grid" id="capturesGrid"></section><section class="summary-card"><h3>Session notes</h3><textarea id="sessionNotes" placeholder="Add coach notes, feeling, club, ball flight, or what you want to improve next..."></textarea><button class="primary-solid" data-action="save-session">Save session</button></section></div>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="review"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#back"/></svg></button><div><h2>Swing report</h2><p>Manual review summary</p></div></header>
+      <div class="screen-scroll"><section class="report-score"><span class="eyebrow">STEP 3 OF 3 · REPORT</span><h3 id="reportTitle">Your swing review</h3><p id="reportSummary">Your key moments and notes, together.</p><div class="report-meta" id="reportMeta"></div></section><section class="captures-grid" id="capturesGrid"></section><section class="summary-card"><h3>Session notes</h3><label for="sessionNotes" class="field-hint">What did you notice? What will you try next?</label><textarea id="sessionNotes" aria-label="Session notes" placeholder="Add coach notes, feeling, club, ball flight, or what you want to improve next..."></textarea><button class="primary-solid" data-action="save-session"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#save"/></svg>Save session</button></section></div>
     </section>
 
     <section class="app-screen" id="screenHistory">
-      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>My swings</h2><p>Saved on this device</p></div></header>
-      <div class="screen-scroll"><section class="history-list" id="historyList"></section></div>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#back"/></svg></button><div><h2>My swings</h2><p>Saved on this device</p></div></header>
+      <div class="screen-scroll"><label class="search-field" for="historySearch"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#swings"/></svg><input id="historySearch" type="search" placeholder="Find a swing" aria-label="Find a swing" autocomplete="off"></label><p class="list-count" id="historyCount"></p><section class="history-list" id="historyList"></section></div>
     </section>
 
     <section class="app-screen" id="screenCompare">
-      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg viewBox="0 0 24 24"><path d="M14.8 5.2 8 12l6.8 6.8a1 1 0 1 1-1.4 1.4l-7.5-7.5a1 1 0 0 1 0-1.4l7.5-7.5a1 1 0 1 1 1.4 1.4Z"/></svg></button><div><h2>Compare</h2><p>Manual comparison</p></div></header>
-      <div class="screen-scroll"><section class="compare-workspace"><div class="compare-top"><div><h3>Select two swings</h3><p>Compare phase frames, timing gaps and report notes.</p></div><span id="compareCount">0/2</span></div><div id="compareList" class="compare-list selectable"></div><div id="compareOutput" class="compare-output"></div></section></div>
+      <header class="screen-header"><button class="back-btn" aria-label="Back" data-nav="home"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#back"/></svg></button><div><h2>Compare</h2><p>Manual comparison</p></div></header>
+      <div class="screen-scroll"><section class="compare-workspace"><div class="compare-top"><div><h3>Select two swings</h3><p>Choose two saved sessions to compare their key moments.</p></div><span id="compareCount">0/2</span></div><div id="compareList" class="compare-list selectable"></div><div id="compareOutput" class="compare-output"></div></section></div>
     </section>
 
     <section class="app-screen" id="screenProfile">
-      <header class="topbar profile-topbar"><img class="topbar-logo" src="assets/wordmark.svg" alt="Swing Lab. Analyze. Understand. Improve."><button class="circle-btn" type="button" data-action="focus-settings" aria-label="Open settings"><svg viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="1.7" d="m9 3-1 3-3 1-2 3 2 2-1 4 3 2 3-1 3 3 3-1 1-3 3-1 1-4-3-2V6l-3-2-3 1Z"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg></button></header>
+      <header class="topbar profile-topbar"><img class="topbar-logo" src="assets/wordmark.svg" alt="Swing Lab. Analyze. Understand. Improve."><button class="circle-btn" type="button" data-action="focus-settings" aria-label="Open settings"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#settings"/></svg></button></header>
       <div class="screen-scroll">
         <h2 class="visually-hidden">Profile</h2>
-        <section class="profile-hero"><div class="avatar" data-profile-initials>SL</div><div><h3 id="profileName">Swing Lab User</h3><button class="edit-profile-link" type="button" data-action="edit-profile">Edit profile &#8250;</button></div><span id="profileSwingCount">0 swings</span></section>
-        <form class="profile-edit" id="profileEditForm" hidden><label for="profileNameInput">Your name<input id="profileNameInput" autocomplete="name" maxlength="60" placeholder="Your name"></label><button class="primary-solid" type="submit">Save profile</button></form>
+        <section class="profile-hero"><div class="avatar" data-profile-initials>SL</div><div><h3 id="profileName">Swing Lab User</h3><button class="edit-profile-link" type="button" data-action="edit-profile">Edit profile <svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#chevron"/></svg></button></div><span id="profileSwingCount">0 swings</span></section>
+        <form class="profile-edit" id="profileEditForm" hidden><label for="profileNameInput">Your name<input id="profileNameInput" autocomplete="name" maxlength="60" placeholder="Your name"></label><div class="form-actions"><button class="primary-solid" type="submit">Save profile</button><button class="text-button" type="button" data-action="cancel-profile">Cancel</button></div></form>
         <section class="profile-stats"><article><span>My swings</span><strong id="profileSavedCount">0</strong></article><article><span>This month</span><strong id="profileMonthCount">0</strong></article><article><span>Phases</span><strong id="profilePhaseCount">0</strong></article></section>
         <p class="device-note">Stored on this device</p>
         <h3 class="profile-section-title">Swing preferences</h3>
         <section class="settings-list profile-settings"><label for="profileHand"><span>Dominant hand</span><select id="profileHand"><option value="right">Right-handed</option><option value="left">Left-handed</option></select></label><label for="profileView"><span>Default view</span><select id="profileView"><option value="DTL">Down the line</option><option value="FO">Face on</option></select></label><label for="profileClub"><span>Preferred club</span><input id="profileClub" placeholder="7 Iron" maxlength="60"></label></section>
-        <details class="profile-details" id="profileSettings"><summary>Settings</summary><div><section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Cloudflare analysis</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Engine URL</button><button type="button" data-action="install-app">Install</button></span></section></div></details>
-        <details class="profile-details"><summary>Data &amp; storage</summary><div class="profile-data-actions"><p>Videos, notes, captures and drawings are saved in this browser. Clearing history removes these sessions from this device.</p><button class="primary-outline danger" type="button" data-action="clear-history">Clear local history</button></div></details>
+        <details class="profile-details" id="profileSettings"><summary><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#settings"/></svg>Analysis settings</summary><div><section class="engine-strip" id="engineStrip"><div><span class="engine-dot" id="engineStatusDot"></span><strong>Analysis service</strong><small id="engineStatusText">Offline</small></div><span class="engine-actions"><button type="button" data-action="load-engine">Engine URL</button><button type="button" data-action="install-app">Install</button></span></section></div></details>
+        <details class="profile-details"><summary><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#swings"/></svg>Data &amp; storage</summary><div class="profile-data-actions"><p>Videos, notes, captures and drawings are saved in this browser. Clearing history removes these sessions from this device.</p><button class="primary-outline danger" type="button" data-action="clear-history">Clear local history</button></div></details>
+        <details class="profile-details"><summary><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#help"/></svg>Help &amp; testing</summary><div class="help-content"><p>This test version reviews videos on this device. Accounts, cloud sync and automatic coaching are not connected.</p><button class="primary-outline" type="button" data-action="help">How to review a swing</button><label for="feedbackNotes">Notes for your feedback<textarea id="feedbackNotes" rows="3" placeholder="What worked? What felt confusing?"></textarea></label><p class="field-hint">Feedback stays on this device. Copy it to share with the person who invited you.</p><button class="primary-outline" type="button" data-action="copy-feedback">Copy feedback</button></div></details>
       </div>
     </section>
 
-    <nav class="bottom-nav" aria-label="Main navigation">
-      <button class="nav-item is-active" data-nav="home"><svg viewBox="0 0 24 24"><path d="M4 10.8 12 4l8 6.8v8.5a.7.7 0 0 1-.7.7h-4.6v-5.5H9.3V20H4.7a.7.7 0 0 1-.7-.7v-8.5Z"/></svg><span>Home</span></button>
-      <button class="nav-item" data-nav="history"><svg viewBox="0 0 24 24"><path d="M5 19.4V12a1 1 0 0 1 2 0v7.4H5Zm6 0V5.8a1 1 0 0 1 2 0v13.6h-2Zm6 0V9.2a1 1 0 1 1 2 0v10.2h-2Z"/></svg><span>My swings</span></button>
-      <button class="nav-item nav-center" data-nav="upload"><span class="center-ring"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span>New analysis</span></button>
-      <button class="nav-item" data-nav="compare"><svg viewBox="0 0 24 24"><path d="M4.6 4.6h7v7h-7zM12.4 12.4h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg><span>Compare</span></button>
-      <button class="nav-item" data-nav="profile"><svg viewBox="0 0 24 24"><circle cx="12" cy="8.1" r="3.8"/><path d="M4.4 20.1c0-3.4 3.3-5.8 7.6-5.8s7.6 2.4 7.6 5.8"/></svg><span>Profile</span></button>
-    </nav>
+    <nav class="bottom-nav" aria-label="Main navigation"><button type="button" class="nav-item is-active" data-nav="home"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#home"/></svg><span>Home</span></button><button type="button" class="nav-item " data-nav="history"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#swings"/></svg><span>My swings</span></button><button type="button" class="nav-item nav-center " data-nav="upload"><span class="center-ring"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#plus"/></svg></span><span>New analysis</span></button><button type="button" class="nav-item " data-nav="compare"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#compare"/></svg><span>Compare</span></button><button type="button" class="nav-item " data-nav="profile"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#user"/></svg><span>Profile</span></button></nav>
   </main>
 
-  <section class="fullscreen-editor" id="fullscreenEditor" hidden>
+  <section class="fullscreen-editor" id="fullscreenEditor" role="dialog" aria-modal="true" aria-label="Drawing editor" hidden>
     <div class="fs-stage">
       <video id="fullscreenVideo" playsinline preload="metadata"></video>
       <canvas id="fullscreenCanvas"></canvas>
@@ -128,7 +111,7 @@
       <div class="fs-topbar">
         <button type="button" class="fs-pill" data-fs-action="close">Done</button>
         <div class="fs-status"><strong id="fsToolName">Select</strong><span id="fsStatusText">Move marks or choose a tool</span></div>
-        <button type="button" class="fs-pill soft" data-fs-action="snapshot">Shot</button>
+        <button type="button" class="fs-pill soft" data-fs-action="snapshot">Save image</button>
       </div>
 
       <div class="fs-side">
@@ -143,12 +126,12 @@
       <section class="floating-panel tool-panel" id="toolPanel" hidden>
         <div class="panel-handle" data-drag-panel="toolPanel"><span></span><strong>Draw tools</strong><button type="button" class="panel-mini" data-fs-action="collapse-tools">Min</button></div>
         <div class="tool-grid">
-          <button type="button" class="fs-tool is-active" data-tool="select"><span>↖</span><small>Select</small></button>
-          <button type="button" class="fs-tool" data-tool="line"><span>/</span><small>Line</small></button>
-          <button type="button" class="fs-tool" data-tool="angle"><span>∠</span><small>Angle</small></button>
-          <button type="button" class="fs-tool" data-tool="circle"><span>o</span><small>Circle</small></button>
-          <button type="button" class="fs-tool" data-tool="box"><span>[]</span><small>Box</small></button>
-          <button type="button" class="fs-tool" data-tool="free"><span>~</span><small>Free</small></button>
+          <button type="button" class="fs-tool is-active" data-tool="select"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#select"/></svg><small>Select</small></button>
+          <button type="button" class="fs-tool" data-tool="line"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#line"/></svg><small>Line</small></button>
+          <button type="button" class="fs-tool" data-tool="angle"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#angle"/></svg><small>Angle</small></button>
+          <button type="button" class="fs-tool" data-tool="circle"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#circle"/></svg><small>Circle</small></button>
+          <button type="button" class="fs-tool" data-tool="box"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#box"/></svg><small>Box</small></button>
+          <button type="button" class="fs-tool" data-tool="free"><svg class="icon" aria-hidden="true" viewBox="0 0 24 24"><use href="assets/icons.svg#free"/></svg><small>Free</small></button>
         </div>
         <div class="tool-extras">
           <button type="button" data-fs-action="toggle-snap"><small>Hold line</small><strong id="fsSnapState">Snap</strong></button>
@@ -157,11 +140,11 @@
         </div>
         <div class="tool-style" id="toolStyle" hidden>
           <div class="option-row">
-            <button type="button" class="color-dot is-active" data-color="#99f032" style="--c:#99f032"></button>
-            <button type="button" class="color-dot" data-color="#ffffff" style="--c:#ffffff"></button>
-            <button type="button" class="color-dot" data-color="#58a6ff" style="--c:#58a6ff"></button>
-            <button type="button" class="color-dot" data-color="#ffcf33" style="--c:#ffcf33"></button>
-            <button type="button" class="color-dot" data-color="#ff5b5b" style="--c:#ff5b5b"></button>
+            <button type="button" class="color-dot is-active" aria-label="Green drawing colour" data-color="#99f032" style="--c:#99f032"></button>
+            <button type="button" class="color-dot" aria-label="White drawing colour" data-color="#ffffff" style="--c:#ffffff"></button>
+            <button type="button" class="color-dot" aria-label="Blue drawing colour" data-color="#58a6ff" style="--c:#58a6ff"></button>
+            <button type="button" class="color-dot" aria-label="Yellow drawing colour" data-color="#ffcf33" style="--c:#ffcf33"></button>
+            <button type="button" class="color-dot" aria-label="Red drawing colour" data-color="#ff5b5b" style="--c:#ff5b5b"></button>
           </div>
           <div class="option-row">
             <button type="button" class="style-btn" data-width="3">Fine</button>
@@ -190,7 +173,7 @@
             </div>
           </div>
         </div>
-        <input id="fsTimeline" class="timeline fs-timeline" type="range" min="0" max="1000" value="0">
+        <input id="fsTimeline" aria-label="Fullscreen video position" class="timeline fs-timeline" type="range" min="0" max="1000" value="0">
         <div class="fs-buttons">
           <button type="button" data-fs-action="back-frame">-1f</button>
           <button type="button" id="fsPlayButton" data-fs-action="play">Play</button>
@@ -200,10 +183,11 @@
     </div>
   </section>
 
-  <div class="mockup-modal" id="mockupModal" hidden><button class="modal-scrim" data-close></button><section class="modal-card"><img class="modal-logo" src="assets/wordmark.svg" alt=""><div class="modal-kicker">SWING LAB</div><h2 id="modalTitle">Not ready yet.</h2><p id="modalText">This feature will be connected in a later version.</p><button class="modal-back" data-close><span></span><strong>Close</strong><svg viewBox="0 0 24 24"><path d="M13.22 4.97a1.05 1.05 0 0 1 1.48 0l5.28 5.28a2.47 2.47 0 0 1 0 3.5l-5.28 5.28a1.05 1.05 0 0 1-1.48-1.48l3.5-3.5H4.9a1.05 1.05 0 1 1 0-2.1h11.82l-3.5-3.5a1.05 1.05 0 0 1 0-1.48Z"/></svg></button></section></div>
+  <div class="mockup-modal" id="mockupModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalText" hidden><button class="modal-scrim" type="button" aria-label="Close dialog" tabindex="-1" data-close></button><section class="modal-card" tabindex="-1"><img class="modal-logo" src="assets/wordmark.svg" alt=""><div class="modal-kicker">SWING LAB</div><h2 id="modalTitle">Not ready yet.</h2><p id="modalText">This feature will be connected in a later version.</p><button class="modal-back" type="button" data-close><span></span><strong>Close</strong><svg viewBox="0 0 24 24"><path d="M13.22 4.97a1.05 1.05 0 0 1 1.48 0l5.28 5.28a2.47 2.47 0 0 1 0 3.5l-5.28 5.28a1.05 1.05 0 0 1-1.48-1.48l3.5-3.5H4.9a1.05 1.05 0 1 1 0-2.1h11.82l-3.5-3.5a1.05 1.05 0 0 1 0-1.48Z"/></svg></button></section></div>
 </div>
 
-<script src="session-store.js?v=30-20261022"></script>
-<script src="app.js?v=30-20261022"></script>
+<div class="toast" id="appToast" role="status" aria-live="polite" hidden></div>
+<script src="session-store.js?v=31-20261022"></script>
+<script src="app.js?v=31-20261022"></script>
 </body>
 </html>
