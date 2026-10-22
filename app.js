@@ -123,7 +123,7 @@ function releaseMedia(){
   document.getElementById('videoEmpty').style.display='';document.getElementById('videoEmpty').textContent='No video loaded';timeline.value=0;
   document.getElementById('currentTimeLabel').textContent='0.00s';document.getElementById('durationLabel').textContent='0.00s';
 }
-function attachMedia(file){state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none'}
+function attachMedia(file){state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none';document.getElementById('useAnalysisRange').checked=false;document.getElementById('analysisRangeStart').value='0';document.getElementById('analysisRangeEnd').value=''}
 function setPhase(phase,time){
   if(!state.current||!state.videoFile||state.storageBusy||!phases.includes(phase)||!Number.isFinite(time))return;
   const limit=Number.isFinite(video.duration)?video.duration:time;state.current.duration=limit;
@@ -147,21 +147,24 @@ async function loadEngine(){
 }
 async function analyzeWithEngine(file){
   if(!file||file!==state.videoFile||!state.current||!state.engineOnline||state.engineBusy||state.storageBusy||video.readyState<2)return;
+  const range=document.getElementById('useAnalysisRange').checked?{start:Number(document.getElementById('analysisRangeStart').value),end:document.getElementById('analysisRangeEnd').value===''?video.duration:Number(document.getElementById('analysisRangeEnd').value)}:undefined;
+  if(range)try{SwingLabMotion.range(range,video.duration)}catch(error){return modalMsg('Check the swing segment.',error.message)}
+  const previousRun=state.current.analyses?.at(-1),replaceable=phases.filter(p=>SwingLabLearning.canReplaceProposal(state.current,previousRun,p));
   const job={controller:new AbortController(),session:state.current,revision:mediaRevision,marks:phaseRevision};engineJob=job;state.engineBusy=true;
-  const timer=setTimeout(()=>job.controller.abort(),120000),isCurrent=()=>engineJob===job&&state.current===job.session&&mediaRevision===job.revision;
+  const timer=setTimeout(()=>job.controller.abort(),240000),isCurrent=()=>engineJob===job&&state.current===job.session&&mediaRevision===job.revision;
   setEngineStatus('busy','Marking locally');setAnalysisProgress(true,'Reading this video on your device…');updateSessionStatus();
   try{
-    const result=await SwingLabLocal.analyze(file,{signal:job.controller.signal,view:job.session.view||profile.view,onProgress:message=>{if(isCurrent())setAnalysisProgress(true,message)}});
+    const result=await SwingLabLocal.analyze(file,{signal:job.controller.signal,range,view:job.session.view||profile.view,onProgress:message=>{if(isCurrent())setAnalysisProgress(true,message)}});
     if(!isCurrent()||job.controller.signal.aborted)return;
     const estimated=Object.fromEntries(phases.filter(p=>Number.isFinite(result.phases?.[p.toLowerCase()])).map(p=>[p,result.phases[p.toLowerCase()]]));
     Object.assign(job.session,{duration:result.duration,videoSha256:result.videoSha256,timing:result.timing});
-    const run={runId:crypto.randomUUID(),modelId:result.id,protocol:SwingLabLearning.PROTOCOL,checkpointSha256:result.checkpointSha256,modelFiles:result.modelFiles,videoSha256:result.videoSha256,createdAt:result.createdAt,status:result.status,view:job.session.view||'DTL',phases:clone(estimated),sampleTimes:result.sampleTimes||[],preprocessing:result.preprocessing,note:result.note};
+    const run={runId:crypto.randomUUID(),modelId:result.id,protocol:SwingLabLearning.PROTOCOL,checkpointSha256:result.checkpointSha256,modelFiles:result.modelFiles,videoSha256:result.videoSha256,createdAt:result.createdAt,status:result.status,view:job.session.view||'DTL',phases:clone(estimated),window:result.window,sampleTimes:result.sampleTimes||[],preprocessing:result.preprocessing,note:result.note};
     job.session.analyses=job.session.analyses||[];job.session.analyses.push(run);
-    if(result.status!=='needs-review'){setAnalysisProgress(true,result.status==='rejected'?'No usable swing information was found. You can mark phases manually.':result.note);return}
+    if(result.status!=='needs-review'){if(phaseRevision===job.marks&&replaceable.length){for(const p of replaceable){delete job.session.phases[p];delete job.session.captures[p]}phaseRevision++;renderPhases();renderCaptures()}setAnalysisProgress(true,result.status==='rejected'?'No usable swing information was found. You can mark phases manually.':result.note);return}
     if(phaseRevision!==job.marks){setAnalysisProgress(true,'Local analysis finished. Your manual phase changes were kept; the proposals are available below.');return}
-    // A rerun records a new immutable proposal; existing manual marks stay in place.
-    for(const [p,t]of Object.entries(estimated))if(job.session.phases[p]==null){job.session.phases[p]=t;delete job.session.captures[p]}
-    job.session.review={status:'draft'};phaseRevision++;renderPhases();renderCaptures();setAnalysisProgress(true,'Local marking complete. Review the five proposals before confirming. Your video stayed on this device.');
+    // Replace untouched automatic marks; retain edited and confirmed references.
+    for(const [p,t]of Object.entries(estimated))if(replaceable.includes(p)){job.session.phases[p]=t;delete job.session.captures[p]}
+    if(replaceable.length){job.session.review={status:'draft'};phaseRevision++}renderPhases();renderCaptures();setAnalysisProgress(true,replaceable.length?'Local marking complete. Review the proposals and the selected segment below.': 'Local analysis finished. Your reviewed marks were kept; the new proposals are available below.');
   }catch(error){if(isCurrent())setAnalysisProgress(true,error.name==='AbortError'?'Local analysis cancelled or timed out. Manual marking is available.':`Local marking unavailable: ${error.message} Manual marking is available.`)}
   finally{clearTimeout(timer);if(isCurrent()){engineJob=null;state.engineBusy=false;setEngineStatus('online');setAnalysisProgress(!analysisProgress.hidden,analysisProgressText.textContent);updateSessionStatus()}}
 }
@@ -170,6 +173,9 @@ function updateLearningUI(){
   const analyze=document.getElementById('analyzeLocal');if(analyze){analyze.disabled=!state.videoFile||video.readyState<2||busy||!state.engineOnline;analyze.textContent=run?'Run local marking again':'Analyze on this device'}
   const cancel=document.getElementById('cancelLocal');if(cancel)cancel.hidden=!state.engineBusy;
   const choice=document.getElementById('sessionView');if(choice){choice.value=session?.view||profile.view;choice.disabled=!session||busy}
+  for(const id of ['useAnalysisRange','analysisRangeStart','analysisRangeEnd'])document.getElementById(id).disabled=!state.videoFile||busy;
+  for(const action of ['segment-start','segment-end']){const button=document.querySelector(`[data-action="${action}"]`);if(button)button.disabled=!state.videoFile||video.readyState<2||busy}
+  const segmentNote=document.getElementById('analysisSegmentNote');if(segmentNote)segmentNote.textContent=Number.isFinite(run?.window?.start)&&Number.isFinite(run?.window?.end)?`Last analyzed segment: ${run.window.start.toFixed(2)}–${run.window.end.toFixed(2)} s. ${(run.window.warnings||[]).join(' ')}`:'';
   const checkbox=document.getElementById('keepCorrectionContext');if(checkbox){checkbox.checked=session?.feedbackEnabled!==false;checkbox.disabled=!session||busy}
   const confirmed=!!session&&SwingLabLearning.reviewMatches(session),reviewState=document.getElementById('phaseReviewState');if(reviewState)reviewState.textContent=session&&SwingLabLearning.negativeMatches(session)?'Confirmed: no swing in this video':confirmed?'Phases confirmed for model review':'Phase labels need visual confirmation';
   const confirm=document.getElementById('confirmPhaseReview');if(confirm)confirm.disabled=!session||!state.videoFile||busy;const noSwing=document.getElementById('confirmNoSwing');if(noSwing)noSwing.disabled=!session||!state.videoFile||busy;
@@ -203,6 +209,7 @@ async function exportLearning(onlyCurrent){
 }
 document.getElementById('keepCorrectionContext')?.addEventListener('change',event=>{if(state.current&&!state.storageBusy)state.current.feedbackEnabled=event.target.checked;updateSessionStatus()});
 document.getElementById('sessionView')?.addEventListener('change',event=>{if(state.current&&!state.storageBusy){cancelAnalysis();state.current.view=event.target.value;state.current.review={status:'draft'};updateSessionStatus()}});
+for(const [action,input]of [['segment-start','analysisRangeStart'],['segment-end','analysisRangeEnd']])document.querySelector(`[data-action="${action}"]`)?.addEventListener('click',()=>{if(!state.videoFile||state.engineBusy||state.storageBusy||video.readyState<2)return;video.pause();document.getElementById(input).value=video.currentTime.toFixed(6);document.getElementById('useAnalysisRange').checked=true});
 async function clearHistory(){
   await ready;if(!state.storageReady)return storageFailure();if(state.storageBusy)return;
   if(!confirm('Delete all saved sessions and their videos from this device?'))return;

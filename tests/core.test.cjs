@@ -93,9 +93,16 @@ test('manual phase changes take precedence over an in-flight analysis',async()=>
   assert.equal(a.state.current.phases.Impact,4);assert.equal(a.state.current.phases.Top,undefined);
   assert.equal(a.state.current.analyses[0].phases.Impact,2);
 });
+
+test('a rejected video without segment bounds leaves review controls usable and clears stale automatic marks',async()=>{
+  const {a,c,nodes}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;
+  await a.analyzeWithEngine(a.state.videoFile);assert.equal(a.state.current.phases.Impact,2);
+  c.SwingLabLocal.analyze=async()=>({...localResult({}),status:'rejected',window:{status:'rejected',reason:'No movement'},note:'No movement'});
+  await a.analyzeWithEngine(a.state.videoFile);assert.equal(a.state.engineBusy,false);assert.equal(a.state.current.phases.Impact,undefined);assert.equal(nodes.get('confirmNoSwing').disabled,false);assert.equal(a.state.current.analyses.length,2);
+});
 test('the engine deadline aborts the request and leaves manual review usable',async()=>{
   const {a,c,nodes}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;
-  c.setTimeout=(fn,ms)=>setTimeout(fn,ms===120000?1:ms);
+  c.setTimeout=(fn,ms)=>setTimeout(fn,ms===240000?1:ms);
   c.SwingLabLocal.analyze=(u,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('Timeout','AbortError'))));
   await a.analyzeWithEngine(a.state.videoFile);assert.equal(a.state.engineBusy,false);assert.match(nodes.get('analysisProgressText').textContent,/timed out/);a.setPhase('Impact',3);assert.equal(a.state.current.phases.Impact,3);
 });
@@ -161,6 +168,6 @@ test('both HTML pages request exactly the scripts and styles that are precached'
   const sw=serviceWorker();const shell=vm.runInContext('Array.from(SHELL_URLS)',sw.context);
   for(const name of ['index.html','dashboard.html']){
     const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/<script src="([^\"]+)"|<link rel="stylesheet" href="([^\"]+)"/g)].map(m=>m[1]||m[2]);
-    assert.equal(urls.length,8);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
+    assert.equal(urls.length,9);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
   }
 });

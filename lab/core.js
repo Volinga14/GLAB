@@ -72,7 +72,7 @@
       if(!record||!/^[-\w]{1,120}$/.test(record.id)||seen.has(record.id)||!Number.isFinite(record.duration)||record.duration<=0||record.duration>600)throw Error('Identificador o duración inválidos.');seen.add(record.id);
       if(!/^[a-f0-9]{64}$/.test(record.sha256||''))throw Error('Falta la huella del vídeo.');
       const errors=validateReference(record.reference,record.duration);if(errors.length)throw Error(`${record.id}: ${errors.join(' ')}`);
-      if(record.results)for(const pred of Object.values(record.results)){if(!pred||!['needs-review','rejected','error'].includes(pred.status))throw Error('Estado de motor inválido.');if(pred.phases)for(const [key,value]of Object.entries(pred.phases))if(!PHASES.some(p=>p.id===key)||!finite(value)||value<0||value>record.duration)throw Error('Predicción fuera del vídeo.');}
+      if(record.results)for(const pred of Object.values(record.results)){if(!pred||!['needs-review','needs-segment','rejected','error'].includes(pred.status))throw Error('Estado de motor inválido.');if(pred.phases)for(const [key,value]of Object.entries(pred.phases))if(!PHASES.some(p=>p.id===key)||!finite(value)||value<0||value>record.duration)throw Error('Predicción fuera del vídeo.');}
       return clone(record);
     });
   }

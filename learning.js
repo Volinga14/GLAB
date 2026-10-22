@@ -2,9 +2,18 @@
 (function(root,factory){const api=factory(root.SwingLabVideo||(typeof require==='function'?require('./video-tools.js'):null));if(typeof module==='object'&&module.exports)module.exports=api;else root.SwingLabLearning=api})(globalThis,V=>{
   'use strict';const PROTOCOL='swing-phases/1.0',PHASES=['Address','Takeaway','Top','Impact','Finish'],finite=Number.isFinite,clone=x=>JSON.parse(JSON.stringify(x)),safeId=x=>typeof x==='string'&&/^[-\w]{1,100}$/.test(x),hash=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x),stamp=x=>typeof x==='string'&&finite(Date.parse(x)),validTime=(t,d)=>finite(t)&&t>=0&&t<=d;
   function marks(value,duration){return Object.fromEntries(PHASES.filter(p=>validTime(value?.[p],duration)).map(p=>[p,value[p]]))}
+  function analysisWindow(raw,duration){
+    if(!raw||!validTime(raw.start,duration)||!validTime(raw.end,duration)||raw.end<=raw.start)return null;
+    return {start:raw.start,end:raw.end,method:String(raw.method||'').slice(0,100),alternatives:Array.isArray(raw.alternatives)?raw.alternatives.filter(w=>validTime(w?.start,duration)&&validTime(w?.end,duration)&&w.end>w.start).slice(0,30).map(w=>({start:w.start,end:w.end})):[],warnings:Array.isArray(raw.warnings)?raw.warnings.slice(0,10).map(s=>String(s).slice(0,500)):[]};
+  }
+  function canReplaceProposal(session,previousRun,phase){
+    if(reviewMatches(session)||negativeMatches(session))return false;
+    if(session.phases?.[phase]==null)return true;
+    return !!previousRun&&session.phases[phase]===previousRun.phases?.[phase]&&!(session.corrections||[]).some(c=>c.phase===phase&&!c.supersededBy&&c.analysisId===previousRun.runId);
+  }
   function analysis(raw,duration){
-    if(!raw||!safeId(raw.runId)||!hash(raw.videoSha256)||raw.protocol!==PROTOCOL||!stamp(raw.createdAt)||!['needs-review','rejected','unsupported-view'].includes(raw.status))return null;
-    return {runId:raw.runId,modelId:String(raw.modelId||'').slice(0,100),protocol:PROTOCOL,checkpointSha256:hash(raw.checkpointSha256)?raw.checkpointSha256:null,modelFiles:Object.fromEntries(['encoder','temporal'].map(key=>[key,{sha256:hash(raw.modelFiles?.[key]?.sha256)?raw.modelFiles[key].sha256:null}])),videoSha256:raw.videoSha256,createdAt:raw.createdAt,status:raw.status,view:raw.view==='FO'?'FO':'DTL',phases:marks(raw.phases,duration),sampleTimes:Array.isArray(raw.sampleTimes)?raw.sampleTimes.filter(t=>validTime(t,duration)).slice(0,200):[],preprocessing:String(raw.preprocessing||'').slice(0,100),sampling:{frames:48,imageSize:144},note:String(raw.note||'').slice(0,2000)};
+    if(!raw||!safeId(raw.runId)||!hash(raw.videoSha256)||raw.protocol!==PROTOCOL||!stamp(raw.createdAt)||!['needs-review','needs-segment','rejected','unsupported-view'].includes(raw.status))return null;
+    return {runId:raw.runId,modelId:String(raw.modelId||'').slice(0,100),protocol:PROTOCOL,checkpointSha256:hash(raw.checkpointSha256)?raw.checkpointSha256:null,modelFiles:Object.fromEntries(['encoder','temporal'].map(key=>[key,{sha256:hash(raw.modelFiles?.[key]?.sha256)?raw.modelFiles[key].sha256:null}])),videoSha256:raw.videoSha256,createdAt:raw.createdAt,status:raw.status,view:raw.view==='FO'?'FO':'DTL',phases:marks(raw.phases,duration),sampleTimes:Array.isArray(raw.sampleTimes)?raw.sampleTimes.filter(t=>validTime(t,duration)).slice(0,200):[],window:analysisWindow(raw.window,duration),preprocessing:String(raw.preprocessing||'').slice(0,100),sampling:{frames:48,imageSize:144},note:String(raw.note||'').slice(0,2000)};
   }
   function correction(raw,duration){
     if(!raw||!safeId(raw.id)||!PHASES.includes(raw.phase)||!stamp(raw.createdAt)||![raw.previousTime,raw.proposedTime,raw.correctedTime].every(t=>t==null||validTime(t,duration)))return null;
@@ -65,5 +74,5 @@
     }
     const manifest={schema:1,kind:'swinglab-learning-pack',protocol:PROTOCOL,createdAt:new Date().toISOString(),policy:'No automatic training or upload. Only explicitly confirmed phase sets are eligible; split by source recording/player before any future training.',includesOriginalVideos:!!includeVideo,records};entries.unshift({name:'manifest.json',data:JSON.stringify(manifest,null,2)});return zip(entries);
   }
-  return {PROTOCOL,PHASES,normalize,record,collect,reviewMatches,negativeMatches,exportPack,zip};
+  return {PROTOCOL,PHASES,normalize,record,collect,reviewMatches,negativeMatches,canReplaceProposal,exportPack,zip};
 });

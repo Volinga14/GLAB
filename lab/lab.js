@@ -13,7 +13,7 @@
   function lock(on){state.busy=on;for(const id of ['record','record-view','files','load-private','run-local','run-glab','import','import-glab','play','back','forward','timeline'])$(id).disabled=on;for(const el of $('reference-form').elements)el.disabled=on||!state.records.length;for(const id of ['record','record-view','run-local','run-glab'])$(id).disabled=on||!state.records.length;for(const button of $('phase-tabs').querySelectorAll('button'))button.disabled=on||!state.records.length;$('cancel').hidden=!on;$('progress').hidden=!on;}
   function renderLibrary(){const previous=state.id;$('record').replaceChildren();for(const record of state.records){const option=text('option',record.title+(record.reference.status==='draft'?' · pendiente de revisión':''));option.value=record.id;$('record').append(option)}$('record').value=previous||state.records[0]?.id||'';if(!state.busy){for(const el of $('reference-form').elements)el.disabled=!state.records.length;for(const id of ['record','record-view','run-local','run-glab'])$(id).disabled=!state.records.length;for(const button of $('phase-tabs').querySelectorAll('button'))button.disabled=!state.records.length}renderSummary()}
   function renderSummary(){
-    $('summary').replaceChildren();for(const [key,label]of [['glab','GLAB'],['local','Local Mark v0.2']]){const summary=C.summarize(state.records,key),article=document.createElement('article');article.append(text('h3',label));
+    $('summary').replaceChildren();for(const [key,label]of [['glab','GLAB'],['local','Local Mark v0.3']]){const summary=C.summarize(state.records,key),article=document.createElement('article');article.append(text('h3',label));
       for(const line of [`Casos revisados con resultado: ${summary.completed}/${summary.reviewed}`,`Fases comparadas: ${summary.matched}/${summary.eligible} · ausentes: ${summary.missing}`,`Error absoluto medio: ${time(summary.mae)} · mediana: ${time(summary.median)} · P95: ${time(summary.p95)}`,`Falsos análisis en controles negativos: ${summary.falsePositives}/${summary.negatives}`,`Comparaciones con FPS constante verificado: ${summary.frameSamples}`])article.append(text('p',line));
       if(summary.frameSamples)article.append(text('p',`Dentro de ±1 / ±3 / ±5 fotogramas: ${[1,3,5].map(n=>Math.round(summary.frameHits[n]*100)+'%').join(' / ')}`));
       $('summary').append(article);
@@ -23,10 +23,11 @@
   function renderComparison(){
     $('comparison').replaceChildren();const record=current();if(!record)return;
     for(const phase of C.PHASES){const row=document.createElement('tr');row.append(text('td',phase.label));const ref=record.reference.phases?.[phase.id]?.time,refCell=document.createElement('td');if(Number.isFinite(ref))refCell.append(seekButton(ref));else refCell.textContent='Sin resolver';row.append(refCell);
-      for(const key of ['glab','local']){const cell=document.createElement('td'),value=record.results?.[key]?.phases?.[phase.id];if(Number.isFinite(value))cell.append(seekButton(value));else cell.textContent=record.results?.[key]?.status==='rejected'?'Rechazado':'—';row.append(cell);const delta=Number.isFinite(value)&&Number.isFinite(ref)?value-ref:null;row.append(text('td',delta==null?'—':(delta>0?'+':'')+delta.toFixed(3)+' s'))}
+      const previous=record.resultHistory?.filter(r=>r.key==='local').at(-1)?.result;
+      for(const key of ['glab','previous','local']){const result=key==='previous'?previous:record.results?.[key],cell=document.createElement('td'),value=result?.phases?.[phase.id];if(Number.isFinite(value))cell.append(seekButton(value));else cell.textContent=result?.status==='rejected'?'Rechazado':result?.status==='needs-segment'?'Delimitar tramo':'—';row.append(cell);const delta=Number.isFinite(value)&&Number.isFinite(ref)?value-ref:null;row.append(text('td',delta==null?'—':(delta>0?'+':'')+delta.toFixed(3)+' s'))}
       $('comparison').append(row);
     }
-    const results=Object.entries(record.results||{}).map(([key,r])=>`${key==='local'?'Local':'GLAB'}: ${r.status==='rejected'?'rechazado':r.status==='error'?'error':'propuestas pendientes de revisión'}${r.note?' · '+r.note:''}`);
+    const results=Object.entries(record.results||{}).map(([key,r])=>`${key==='local'?'Local':'GLAB'}: ${r.status==='rejected'?'rechazado':r.status==='error'?'error':r.status==='needs-segment'?'necesita delimitar el swing':'propuestas pendientes de revisión'}${r.note?' · '+r.note:''}`);
     $('engine-note').textContent=results.join(' | ');renderSummary();
   }
   function renderPhase(){
@@ -79,7 +80,7 @@
     try{
       const result=await SwingLabLocal.analyze(state.file,{view:'DTL',signal:state.controller.signal,onProgress:(message,percent)=>{status(message);$('progress').value=percent}});
       if(state.controller.signal.aborted)throw new DOMException('Cancelado','AbortError');
-      result.totalMs=performance.now()-started;result.measuredAt=new Date().toISOString();const record=C.clone(current());record.results={...record.results,local:result};record.timing=result.timing;await S.save(record);if(state.id===id){updateRecord(record);renderComparison();status(result.status==='rejected'?'El candidato ha rechazado este vídeo: '+result.note:`Propuestas guardadas. Tiempo total: ${(result.totalMs/1000).toFixed(1)} s. Revisa las cinco fases.`)}
+      result.totalMs=performance.now()-started;result.measuredAt=new Date().toISOString();const record=C.clone(current());if(record.results?.local){record.resultHistory=record.resultHistory||[];record.resultHistory.push({key:'local',result:record.results.local})}record.results={...record.results,local:result};record.timing=result.timing;await S.save(record);if(state.id===id){updateRecord(record);renderComparison();status(result.status==='rejected'?'El candidato ha rechazado este vídeo: '+result.note:result.status==='needs-segment'?'No se pudo aislar el swing. Delimita el tramo en la app principal o marca las fases manualmente.':`Propuestas guardadas. Tiempo total: ${(result.totalMs/1000).toFixed(1)} s. Revisa las cinco fases.`)}
     }catch(error){status(error.name==='AbortError'?'Proceso cancelado. Los resultados anteriores se conservan.':error.message,true)}finally{state.controller=null;lock(false);renderComparison()}
   }
   function parseGlab(payload){

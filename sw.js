@@ -1,12 +1,13 @@
 const CACHE_PREFIX = `swing-lab-pwa:${new URL(self.registration.scope).pathname}:`;
-const CACHE_NAME = CACHE_PREFIX + 'v33-20261022';
+const CACHE_NAME = CACHE_PREFIX + 'v34-20261022';
 const APP_SHELL = [
   './',
   './index.html',
-  './video-tools.js?v=33-20261022',
-  './local-engine.js?v=33-20261022',
-  './learning.js?v=33-20261022',
+  './video-tools.js?v=34-20261022',
+  './local-engine.js?v=34-20261022',
+  './learning.js?v=34-20261022',
   './lab/core.js',
+  './lab/motion.js?v=34-20261022',
   './lab/candidate-worker.js',
   './lab/models/model.json',
   './lab/models/encoder.onnx',
@@ -16,10 +17,10 @@ const APP_SHELL = [
   './lab/vendor/runtime.json',
   ...Array.from({length:6},(_,i)=>'./lab/vendor/ort-runtime.gz.'+i),
   './dashboard.html',
-  './styles.css?v=33-20261022',
-  './session-store.js?v=33-20261022',
-  './app.js?v=33-20261022',
-  './ui.css?v=33-20261022',
+  './styles.css?v=34-20261022',
+  './session-store.js?v=34-20261022',
+  './app.js?v=34-20261022',
+  './ui.css?v=34-20261022',
   './assets/wordmark.svg',
   './assets/icons.svg',
   './manifest.webmanifest',

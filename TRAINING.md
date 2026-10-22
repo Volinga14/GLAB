@@ -1,6 +1,26 @@
 # Mejora local del marcado
 
-El motor que usa la app es `Local Mark v0.2`. Conserva los pesos ONNX congelados de GLAB; esta versión integra el motor, mejora el manejo de tiempos y añade feedback trazable. **No se ha entrenado una red nueva ni demostrado todavía una mejora de precisión.** La app principal ofrece un único motor automático local. El laboratorio mantiene GLAB como herramienta de comparación separada.
+El motor que usa la app es `Local Mark v0.3`. Conserva los pesos ONNX congelados de GLAB; cambia la selección del tramo, corrige el muestreo en límites de fotograma y conserva feedback trazable. **No se ha entrenado una red nueva ni demostrado precisión en una evaluación independiente.** La app principal ofrece un único motor automático local. El laboratorio mantiene GLAB como herramienta de comparación separada.
+
+## Corrección del retraso · v0.3
+
+El selector anterior elegía el grupo de movimiento más largo. Caminar, bajar el palo o mover la cámara después del golpe podía desplazar todas las fases varios segundos. El selector nuevo mide ocho muestras por segundo sobre el encuadre completo, suaviza texturas finas, estima la traslación del fondo y busca un inicio de movimiento aislado seguido de recuperación. Conserva los otros tramos y avisa de ambigüedad. Sigue siendo una regla de localización, no un clasificador de presencia de swing ni una compensación completa de cámara.
+
+Si no encuentra un tramo en un vídeo de más de cuatro segundos, devuelve `needs-segment` sin inventar fases. Los clips cortos pueden usar el encuadre temporal completo con aviso; los negativos reales siguen siendo una limitación. En **Adjust the swing segment** se puede elegir un instante antes del backswing y otro después del finish. No se recorta ni sube el archivo: las marcas y sus ventanas conservan los segundos del vídeo original.
+
+El muestreo busca dentro de cada intervalo de presentación, evitando sus límites redondeados. Una prueba con un contador visual codificado comprueba que las 48 imágenes de inferencia coinciden con sus fotogramas de origen. Esta prueba confirma el funcionamiento de ese decodificador/contenedor, no la compatibilidad con todos los formatos.
+
+Repetir el análisis sustituye las propuestas automáticas que permanecen intactas. Conserva las fases editadas, las revisiones confirmadas y todos los resultados previos. Un análisis rechazado o que pide delimitar elimina las propuestas anteriores que seguían sin revisar. El laboratorio conserva el resultado local anterior y lo compara al lado del actual.
+
+La comprobación de desarrollo incluye vídeos históricos, controles negativos y grabaciones nuevas usadas para reproducir el retraso. Las etiquetas históricas y sus discrepancias se mantienen como borradores hasta su confirmación. Los resultados y los vídeos permanecen en carpetas privadas; no se publican como ejemplos ni como etiquetas de entrenamiento.
+
+Para reproducir una evaluación sin sobrescribir el resultado anterior (Node, Playwright y un navegador Chromium instalado):
+
+```sh
+node tools/evaluate-local.cjs --pack CARPETA_PRIVADA/manifest.json --out OTRA_CARPETA_PRIVADA/resultados.json --workers 1
+```
+
+`PLAYWRIGHT_MODULE_PATH` y `BROWSER_EXECUTABLE` permiten seleccionar las dependencias locales. El evaluador exige una salida fuera del repositorio público, verifica las huellas y excluye los borradores de las métricas de precisión. Con varios procesos los tiempos pueden incluir competencia de recursos y limitación de pestañas en segundo plano; no son una medida de rendimiento móvil.
 
 ## Lo que se guarda al revisar
 

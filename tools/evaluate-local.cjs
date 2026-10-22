@@ -1,0 +1,16 @@
+/* Private, repeatable browser evaluation; videos and results stay outside git. */
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),{createServer}=require('./serve-marking-lab.cjs'),C=require('../lab/core.js');
+const args=process.argv.slice(2),option=(name,fallback)=>{const i=args.indexOf(name);return i<0?fallback:args[i+1]};
+const manifest=option('--pack'),destination=option('--out'),parallel=Number(option('--workers','1'));
+if(!manifest||!destination||!Number.isInteger(parallel)||parallel<1||parallel>3)throw Error('Use --pack PRIVATE/manifest.json --out NEW_PRIVATE/results.json [--workers 1..3].');
+const pack=JSON.parse(fs.readFileSync(path.resolve(manifest),'utf8')),records=C.normalizeImport(pack),directory=path.dirname(path.resolve(manifest)),output=path.resolve(destination);
+const relative=path.relative(path.resolve(__dirname,'..'),output);if(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative))throw Error('Results must be outside the public repository.');
+if(fs.existsSync(output))throw Error('Output already exists; use a new path to preserve the baseline.');
+const {chromium}=require(process.env.PLAYWRIGHT_MODULE_PATH||'playwright');
+(async()=>{const server=createServer(directory);await new Promise(r=>server.listen(0,'127.0.0.1',r));let browser;const results={},uploads=[];let cursor=0;
+try{browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
+ await Promise.all(Array.from({length:parallel},async()=>{const context=await browser.newContext();context.on('request',r=>{if(r.method()==='POST')uploads.push(r.url())});const page=await context.newPage();await page.goto('http://127.0.0.1:'+server.address().port+'/');
+ while(cursor<records.length){const r=records[cursor++],started=Date.now();try{const result=await page.evaluate(async r=>{const response=await fetch('/__lab/private/'+r.id);if(!response.ok)throw Error('Private source unavailable');return SwingLabLocal.analyze(new File([await response.blob()],r.fileName,{type:response.headers.get('content-type')}),{view:r.view?.toUpperCase()||'DTL'})},r);if(result.videoSha256!==r.sha256)throw Error('Source fingerprint mismatch');results[r.id]={...result,totalMs:Date.now()-started}}catch(e){results[r.id]={status:'error',phases:{},note:String(e.message),totalMs:Date.now()-started}}fs.writeFileSync(output,JSON.stringify({protocol:C.PROTOCOL,purpose:'Private development comparison; draft labels are not accuracy ground truth.',results,uploads:uploads.length},null,2));console.log(`${Object.keys(results).length}/${records.length}: ${r.id} ${results[r.id].status} (${Math.round((Date.now()-started)/1000)}s)`)}await context.close();}));
+ const evaluated=records.map(r=>({...r,results:{candidate:results[r.id]}})),summary=C.summarize(evaluated,'candidate');fs.writeFileSync(output,JSON.stringify({protocol:C.PROTOCOL,purpose:'Private development comparison; draft labels are not accuracy ground truth.',results,summary,uploads:uploads.length},null,2));console.log(JSON.stringify(summary));if(uploads.length||Object.values(results).some(r=>r.status==='error'))process.exitCode=1;
+}finally{await browser?.close();server.closeAllConnections();server.close()}})().catch(e=>{console.error(e);process.exitCode=1});
