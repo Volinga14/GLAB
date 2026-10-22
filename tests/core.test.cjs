@@ -33,7 +33,13 @@ async function environment(history=[]){
     setTimeout,clearTimeout,addEventListener(){},matchMedia:()=>({matches:false}),AbortController,DOMException,
     FormData:class{append(){}},confirm:()=>true,prompt:()=>null,CustomEvent:class{constructor(type,opts){this.type=type;this.detail=opts?.detail}},innerHeight:800};
   context.URL=class extends URL{static createObjectURL(f){return 'blob:'+f.name}static revokeObjectURL(){}};
-  context.window=context;vm.createContext(context);vm.runInContext(storage,context);
+  context.window=context;vm.createContext(context);
+  vm.runInContext(fs.readFileSync(path.join(root,'video-tools.js'),'utf8'),context);
+  vm.runInContext(fs.readFileSync(path.join(root,'learning.js'),'utf8'),context);
+  context.SwingLabLearning.collect=async()=>[];
+  const metadata={sha256:'a'.repeat(64),duration:10,timing:{source:'seconds',verified:false,times:[]}};
+  context.SwingLabLocal={prepare:async()=>metadata,analyze:async()=>localResult({impact:2})};
+  vm.runInContext(storage,context);
   const fakeStore={init:async()=>({history:copy(history)}),save:async(s,f)=>{records.set(s.id,copy(s));if(f)videos.set(s.id,f)},
     video:async id=>videos.get(id)||null,remove:async id=>{records.delete(id);videos.delete(id)},clear:async()=>{records.clear();videos.clear()}};
   context.SwingLabStorage.createStore=()=>fakeStore;
@@ -71,23 +77,26 @@ test('editing and clearing phase marks invalidate their captures',async()=>{
   a.setPhase('Impact',2);assert.equal(a.state.current.captures.Impact,undefined);
   a.state.current.captures.Top='old';a.handle('clear-phases');assert.equal(Object.keys(a.state.current.captures).length,0);
 });
-test('late engine responses cannot modify another session',async()=>{
+function localResult(phases){return {id:'local-test',protocol:'swing-phases/1.0',checkpointSha256:'b'.repeat(64),videoSha256:'a'.repeat(64),duration:10,timing:{source:'seconds',verified:false,times:[]},createdAt:new Date().toISOString(),status:'needs-review',phases}}
+
+test('late local responses cannot modify another session',async()=>{
   const {a,c}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;a.state.engineUrl='https://engine.invalid';
-  let finish,options;c.fetch=(u,o)=>{options=o;return new Promise(r=>finish=r)};
+  let finish,options;c.SwingLabLocal.analyze=(u,o)=>{options=o;return new Promise(r=>finish=r)};
   const work=a.analyzeWithEngine(a.state.videoFile);await a.loadVideoFile(file('B'));
-  assert.equal(options.signal.aborted,true);finish({ok:true,json:async()=>({phases:{Impact:3}})});await work;
+  assert.equal(options.signal.aborted,true);finish(localResult({impact:3}));await work;
   assert.equal(a.state.current.title,'B');assert.equal(a.state.current.phases.Impact,undefined);assert.equal(a.state.engineBusy,false);
 });
 test('manual phase changes take precedence over an in-flight analysis',async()=>{
   const {a,c}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;
-  let finish;c.fetch=()=>new Promise(r=>finish=r);const work=a.analyzeWithEngine(a.state.videoFile);
-  a.setPhase('Impact',4);finish({ok:true,json:async()=>({phases:{Impact:2,Top:1}})});await work;
+  let finish;c.SwingLabLocal.analyze=()=>new Promise(r=>finish=r);const work=a.analyzeWithEngine(a.state.videoFile);
+  a.setPhase('Impact',4);finish(localResult({impact:2,top:1}));await work;
   assert.equal(a.state.current.phases.Impact,4);assert.equal(a.state.current.phases.Top,undefined);
+  assert.equal(a.state.current.analyses[0].phases.Impact,2);
 });
 test('the engine deadline aborts the request and leaves manual review usable',async()=>{
   const {a,c,nodes}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;
-  c.setTimeout=(fn,ms)=>setTimeout(fn,ms===60000?1:ms);
-  c.fetch=(u,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('Timeout','AbortError'))));
+  c.setTimeout=(fn,ms)=>setTimeout(fn,ms===120000?1:ms);
+  c.SwingLabLocal.analyze=(u,{signal})=>new Promise((resolve,reject)=>signal.addEventListener('abort',()=>reject(new DOMException('Timeout','AbortError'))));
   await a.analyzeWithEngine(a.state.videoFile);assert.equal(a.state.engineBusy,false);assert.match(nodes.get('analysisProgressText').textContent,/timed out/);a.setPhase('Impact',3);assert.equal(a.state.current.phases.Impact,3);
 });
 test('discarding an unsaved session requires confirmation',async()=>{
@@ -95,10 +104,10 @@ test('discarding an unsaved session requires confirmation',async()=>{
   await a.openSession('saved');assert.equal(a.state.current.title,'draft');
   await a.loadVideoFile(file('other'));assert.equal(a.state.current.title,'draft');
 });
-test('engine retries upload fields on 422 using one cancellation signal',async()=>{
+test('local marking never uses stored remote service URLs or uploads the video',async()=>{
   const {a,c}=await environment();await a.loadVideoFile(file('A'));a.state.engineOnline=true;
-  const signals=[];c.fetch=async(u,o)=>{signals.push(o.signal);return signals.length===1?{ok:false,status:422}:{ok:true,json:async()=>({phases:{Impact:2}})}};
-  await a.analyzeWithEngine(a.state.videoFile);assert.equal(signals.length,2);assert.equal(signals[0],signals[1]);assert.equal(a.state.current.phases.Impact,2);
+  a.state.engineUrl='https://unused.invalid';c.fetch=()=>{throw Error('No upload is allowed')};
+  await a.analyzeWithEngine(a.state.videoFile);assert.equal(a.state.current.phases.Impact,2);assert.equal(a.state.current.analyses[0].modelId,'local-test');
 });
 test('all saved sessions are available for comparison',async()=>{
   const {a}=await environment(Array.from({length:35},(_,i)=>session(String(i))));a.state.compareSelected=['30','31'];a.renderCompare();assert.equal(a.state.compareSelected.length,2);
@@ -151,7 +160,7 @@ test('service worker does not intercept APIs or cache HTTP errors',async()=>{
 test('both HTML pages request exactly the scripts and styles that are precached',()=>{
   const sw=serviceWorker();const shell=vm.runInContext('Array.from(SHELL_URLS)',sw.context);
   for(const name of ['index.html','dashboard.html']){
-    const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/(?:src|href)="([^\"]+\?v=[^\"]+)"/g)].map(m=>m[1]);
-    assert.equal(urls.length,4);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
+    const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/<script src="([^\"]+)"|<link rel="stylesheet" href="([^\"]+)"/g)].map(m=>m[1]||m[2]);
+    assert.equal(urls.length,8);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
   }
 });

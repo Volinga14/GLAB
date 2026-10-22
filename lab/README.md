@@ -1,6 +1,6 @@
 # Laboratorio de marcado — protocolo 1.0
 
-Este módulo propone fases; no calcula calidad técnica, puntuaciones ni consejos. GLAB se conserva sin modificar. El candidato `Local Mark v0.1` es una exportación congelada de sus pesos para ejecutar dentro del navegador: **no es un modelo nuevo ni una arquitectura independiente**.
+Este módulo propone fases; no calcula calidad técnica, puntuaciones ni consejos. GLAB se conserva sin modificar. El candidato `Local Mark v0.2` es una exportación congelada de sus pesos para ejecutar dentro del navegador: **no es un modelo nuevo ni una arquitectura independiente**.
 
 ## Definiciones cerradas para esta primera iteración
 
@@ -72,3 +72,5 @@ La segunda orden usa Playwright, con las mismas variables `PLAYWRIGHT_MODULE_PAT
 Antes de usarlo como marcado automático de producción quedan: revisar todas las etiquetas, añadir vistas/velocidades/diversidad, establecer un conjunto independiente, medir en Android/iPhone y mejorar la detección de swing y la precisión temporal de Impact.
 
 Para reproducir los ONNX y las salidas de paridad en una carpeta nueva, usar `python tools/export-local-model.py --runtime RUTA/glab-runtime --out RUTA/nueva-exportacion` con PyTorch y ONNX 1.19.1 disponibles. No sobrescribe la distribución ni modifica GLAB; verificar la paridad antes de sustituir los modelos.
+
+El laboratorio y la app comparten ahora `local-engine.js`. La versión 0.2 usa un decodificador separado del reproductor visible y tiempos de presentación del vídeo cuando son compatibles. Los pesos se conservan; la integración no implica un nuevo entrenamiento. La app principal añade correcciones, ventanas y exportación para revisión según [el flujo de aprendizaje](../TRAINING.md).

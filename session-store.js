@@ -30,7 +30,8 @@
       fileName: String(value.fileName || ''),
       date: Number.isFinite(Date.parse(value.date)) ? value.date : new Date().toISOString(),
       phases, captures, notes: typeof value.notes === 'string' ? value.notes : '',
-      thumb: image(value.thumb), drawings
+      thumb: image(value.thumb), drawings,
+      ...(globalThis.SwingLabLearning?SwingLabLearning.normalize(value):{})
     };
   }
 
@@ -39,9 +40,9 @@
     function open() {
       if (!database) database = new Promise((resolve, reject) => {
         if (!globalThis.indexedDB) return reject(new Error('Local storage is unavailable in this browser.'));
-        const request = indexedDB.open('swinglab-sessions', 1);
+        const request = indexedDB.open('swinglab-sessions', 2);
         request.onupgradeneeded = () => {
-          for (const name of ['sessions', 'videos', 'meta']) request.result.createObjectStore(name);
+          for (const name of ['sessions', 'videos', 'meta', 'feedback']) if(!request.result.objectStoreNames.contains(name))request.result.createObjectStore(name);
         };
         request.onsuccess = () => {
           const db = request.result;
@@ -95,12 +96,13 @@
       });
       return values.map(normalize).filter(Boolean).sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
     }
-    function save(session, video) {
+    function save(session, video, feedback=[]) {
       const normalized = normalize(session);
       if (!normalized) return Promise.reject(new Error('Invalid session.'));
-      return transaction(['sessions', 'videos'], 'readwrite', tx => {
+      return transaction(['sessions', 'videos', 'feedback'], 'readwrite', tx => {
         tx.objectStore('sessions').put(normalized, normalized.id);
         if (video) tx.objectStore('videos').put(video, normalized.id);
+        if(feedback.length)tx.objectStore('feedback').get(normalized.id).onsuccess=event=>{try{const images=new Map((event.target.result||[]).map(image=>[image.key,image]));for(const image of feedback){if(!/^[-\w]{1,150}$/.test(image.key)||!(image.blob instanceof Blob)||image.blob.type!=='image/jpeg')throw new Error('Invalid correction image.');images.set(image.key,image)}tx.objectStore('feedback').put([...images.values()],normalized.id)}catch{tx.abort()}};
       });
     }
     function video(id) {
@@ -109,16 +111,17 @@
       });
     }
     function remove(id) {
-      return transaction(['sessions', 'videos'], 'readwrite', tx => {
-        for (const name of ['sessions', 'videos']) tx.objectStore(name).delete(id);
+      return transaction(['sessions', 'videos', 'feedback'], 'readwrite', tx => {
+        for (const name of ['sessions', 'videos', 'feedback']) tx.objectStore(name).delete(id);
       });
     }
     function clear() {
-      return transaction(['sessions', 'videos'], 'readwrite', tx => {
-        for (const name of ['sessions', 'videos']) tx.objectStore(name).clear();
+      return transaction(['sessions', 'videos', 'feedback'], 'readwrite', tx => {
+        for (const name of ['sessions', 'videos', 'feedback']) tx.objectStore(name).clear();
       });
     }
-    return { init, list, save, video, remove, clear };
+    const feedback=id=>transaction(['feedback'],'readonly',(tx,done)=>{tx.objectStore('feedback').get(id).onsuccess=event=>done(event.target.result||[])});
+    return { init, list, save, video, remove, clear, feedback };
   }
   globalThis.SwingLabStorage = { createStore, normalize, clone };
 })();

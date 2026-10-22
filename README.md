@@ -2,6 +2,14 @@
 
 Installable web application for reviewing golf swing videos. This checkout is the working source; earlier preview folders outside it are preserved snapshots.
 
+## Local analysis and learning feedback: v33
+
+The main app uses only the on-device phase marker. Videos are decoded separately from the review player and never uploaded. Source presentation timestamps replace assumed 30 fps when readable; other sources use explicitly labelled time steps. Every model run retains its proposal and weight identity.
+
+Manual phase changes retain their original proposal and correction history. Saving captures up to six source frames around both the proposal and correction, or a labelled time window for unsupported timing. Phase confirmation is explicit and later changes invalidate it. Learning ZIP exports include metadata and context previews by default, with optional original videos. Feedback images, session metadata and original video writes commit atomically, and deletion removes their associated feedback.
+
+See [the private feedback and training workflow](TRAINING.md). Historical GLAB material can be inventoried and prepared locally; it is never published with the app and is treated as development data. No automatic retraining occurs.
+
 ## Local marking lab: v32
 
 The experimental [marking lab](lab/) defines the five phase events and compares a frozen local ONNX candidate with real GLAB snapshots and editable, revisioned references. It is independent of production session data. See [the lab protocol and usage](lab/README.md). Private reference videos and their derived metadata remain in the local pack and are not included in the published site.
@@ -69,10 +77,12 @@ Browser tests cover IndexedDB migration, real video decoding/capture, atomic rol
 
 Validated on 14 October 2026: 19 logic tests and 13 browser integration checks passed in headless Edge. Android/iOS camera, installation and device-specific behavior still need testing.
 
-## Analysis service and remaining work
+## Analysis and remaining work
 
-The external analysis server is not included in this repository. Configure an HTTP(S) service through Engine URL. The client checks `/health` (with a HEAD fallback for services returning 404/405), then submits a multipart video to `/analyze`. It retries the `file`, `video` and `upload` fields only on HTTP 422. A URL supplied in a page query requires confirmation before use.
+The main app offers only the local marker. Old service URLs and `engine` query parameters are ignored. Profile provides offline preparation instead of an external service address. GLAB is preserved separately and is available only through the explicit laboratory comparison tools.
 
-This correction makes the existing integration safer; it does not establish the accuracy of the external model. Current phase/frame conversion still assumes 30 fps. A documented response contract, source frame rates, validation against real swings, confidence estimates, useful coaching tips and exercises belong to the next phase.
+The local model uses frozen GLAB weights and still needs visual review. The motion filter is not a trained swing-presence classifier; other movement can receive phase proposals. Users can explicitly mark a clip as having no swing, with negative feedback kept separate from phase labels. See [TRAINING.md](TRAINING.md) for the private feedback, label reconciliation and evaluation workflow.
 
-Other remaining work: video quality checks, annotated report snapshots (the old Shot action does not generate one), full export/backup, accessibility, preferences, and optional accounts/synchronization. The local v28 fullscreen interaction changes are intentionally separate from these fixes.
+Validated for this version: 42 logic checks, 13 session/browser checks, 10 integrated learning checks and nine marking-lab checks. Responsive frontend checks also passed. Tests include real on-device inference, three-source-frame corrections, model proposal preservation, correction-image rollback, local ZIP export, source timing and offline use. They do not establish phase accuracy or real-phone performance.
+
+Remaining work includes independent phase/validity evaluation, candidate training, Android/iOS camera and installation testing, numerical swing analysis, validated coaching guidance, full session backup and optional synchronization.

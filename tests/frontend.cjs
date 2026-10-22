@@ -36,7 +36,7 @@ async function enter(page){if(await page.getByRole('button',{name:'Get started',
   assert.equal(await page.locator('#homeGreeting').textContent(),'Hi, Test');
   await page.locator('.bottom-nav [data-nav="profile"]').click();
   assert.equal(await page.locator('#profileName').textContent(),'Test Golfer');assert.equal(await page.locator('#profileHand').inputValue(),'left');assert.equal(await page.locator('#profileView').inputValue(),'FO');assert.equal(await page.locator('#profileClub').inputValue(),'Driver');
-  await page.getByRole('button',{name:'Open settings',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Engine URL',exact:true}).isVisible(),true);
+  await page.getByRole('button',{name:'Open settings',exact:true}).click();assert.equal(await page.getByRole('button',{name:'Prepare offline',exact:true}).isVisible(),true);
   console.log('PASS name and preferences persist across reload; engine settings remain reachable');
   await page.evaluate(async()=>{
     const store=SwingLabStorage.createStore();await store.init();const now=new Date(),monday=new Date(now.getFullYear(),now.getMonth(),now.getDate());monday.setDate(monday.getDate()-((monday.getDay()+6)%7));

@@ -13,7 +13,7 @@
   function lock(on){state.busy=on;for(const id of ['record','record-view','files','load-private','run-local','run-glab','import','import-glab','play','back','forward','timeline'])$(id).disabled=on;for(const el of $('reference-form').elements)el.disabled=on||!state.records.length;for(const id of ['record','record-view','run-local','run-glab'])$(id).disabled=on||!state.records.length;for(const button of $('phase-tabs').querySelectorAll('button'))button.disabled=on||!state.records.length;$('cancel').hidden=!on;$('progress').hidden=!on;}
   function renderLibrary(){const previous=state.id;$('record').replaceChildren();for(const record of state.records){const option=text('option',record.title+(record.reference.status==='draft'?' · pendiente de revisión':''));option.value=record.id;$('record').append(option)}$('record').value=previous||state.records[0]?.id||'';if(!state.busy){for(const el of $('reference-form').elements)el.disabled=!state.records.length;for(const id of ['record','record-view','run-local','run-glab'])$(id).disabled=!state.records.length;for(const button of $('phase-tabs').querySelectorAll('button'))button.disabled=!state.records.length}renderSummary()}
   function renderSummary(){
-    $('summary').replaceChildren();for(const [key,label]of [['glab','GLAB'],['local','Local Mark v0.1']]){const summary=C.summarize(state.records,key),article=document.createElement('article');article.append(text('h3',label));
+    $('summary').replaceChildren();for(const [key,label]of [['glab','GLAB'],['local','Local Mark v0.2']]){const summary=C.summarize(state.records,key),article=document.createElement('article');article.append(text('h3',label));
       for(const line of [`Casos revisados con resultado: ${summary.completed}/${summary.reviewed}`,`Fases comparadas: ${summary.matched}/${summary.eligible} · ausentes: ${summary.missing}`,`Error absoluto medio: ${time(summary.mae)} · mediana: ${time(summary.median)} · P95: ${time(summary.p95)}`,`Falsos análisis en controles negativos: ${summary.falsePositives}/${summary.negatives}`,`Comparaciones con FPS constante verificado: ${summary.frameSamples}`])article.append(text('p',line));
       if(summary.frameSamples)article.append(text('p',`Dentro de ±1 / ±3 / ±5 fotogramas: ${[1,3,5].map(n=>Math.round(summary.frameHits[n]*100)+'%').join(' / ')}`));
       $('summary').append(article);
@@ -42,6 +42,9 @@
     $('revisions').replaceChildren();const revisions=current()?.revisions||[];
     for(const revision of [...revisions].reverse()){const line=document.createElement('p');line.append(text('span',`v${revision.version} · ${revision.savedAt} · ${revision.reference.reviewer||'sin revisor'} `));const restore=text('button','Recuperar como borrador');restore.type='button';restore.onclick=()=>{if(state.busy)return;state.draft=C.clone(revision.reference);state.draft.status=state.draft.status==='negative'?'negative':'draft';changed();renderReference()};line.append(restore);$('revisions').append(line)}
     if(!revisions.length)$('revisions').append(text('p','Aún no hay versiones previas guardadas.'));
+    const alternatives=current()?.alternativeHistoricalReferences||[];
+    if(alternatives.length)$('revisions').append(text('strong','Etiquetas históricas en conflicto para este mismo vídeo'));
+    for(const alternative of alternatives){const line=document.createElement('p');line.append(text('span',`${alternative.sourceId}: ${C.PHASES.map(p=>p.label+' '+time(alternative.phases?.[p.id])).join(' · ')} `));const choose=text('button','Usar esta alternativa como borrador');choose.type='button';choose.onclick=()=>{if(state.busy)return;state.draft={status:alternative.negative?'negative':'draft',reviewer:'',notes:'Alternativa histórica pendiente de reconciliación con el protocolo actual.',phases:alternative.negative?{}:Object.fromEntries(C.PHASES.map(p=>[p.id,{time:Number.isFinite(alternative.phases?.[p.id])?alternative.phases[p.id]:null,reason:''}]))};changed();renderReference()};line.append(choose);$('revisions').append(line)}
     $('draft-state').textContent=state.dirty?'Cambios sin guardar. La tabla y las métricas conservan la referencia guardada.':'Referencia guardada. Las métricas se recalculan al guardar una nueva versión.';
   }
   function changed(){state.dirty=true;if(state.draft.status==='reviewed')state.draft.status='draft';$('draft-state').textContent='Cambios sin guardar. La tabla y las métricas conservan la referencia guardada.';$('reference-status').textContent=state.draft.status==='negative'?'Sin swing':'Borrador'}
@@ -69,39 +72,15 @@
     if(!record){const probe=document.createElement('video'),url=URL.createObjectURL(file);try{probe.preload='metadata';probe.src=url;await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('No se pudo leer el vídeo.')),10000);probe.onloadedmetadata=()=>{clearTimeout(timer);resolve()};probe.onerror=()=>{clearTimeout(timer);reject(Error('Vídeo incompatible.'))}});if(!Number.isFinite(probe.duration)||probe.duration<=0||probe.duration>60)throw Error('Elige un clip con duración conocida, de hasta 60 segundos.');record={id:'local-'+hash.slice(0,24),title:file.name,fileName:file.name,sha256:hash,duration:probe.duration,view:'unknown',timing:{fps:null,cfrVerified:false,source:'Browser timestamps'},reference:{status:'draft',reviewer:'',notes:'Nuevo vídeo: confirmar vista DTL y marcar las fases.',phases:{}},revisions:[],results:{}};record.seedReference=C.clone(record.reference)}finally{probe.removeAttribute('src');probe.load();URL.revokeObjectURL(url)}}
     await S.save(record,file);if(!state.records.some(r=>r.id===record.id))state.records.push(record);renderLibrary();return record.id;
   }
-  async function seek(target,signal){
-    if(signal.aborted)throw new DOMException('Cancelado','AbortError');
-    if(video.readyState>=2&&!video.seeking&&Math.abs(video.currentTime-target)<.0001)return;
-    await new Promise((resolve,reject)=>{const cleanup=()=>{clearTimeout(timer);video.removeEventListener('seeked',done);video.removeEventListener('error',fail);signal.removeEventListener('abort',abort)},done=()=>{cleanup();resolve()},fail=()=>{cleanup();reject(Error('No se pudo decodificar el vídeo.'))},abort=()=>{cleanup();reject(new DOMException('Cancelado','AbortError'))},timer=setTimeout(()=>{cleanup();reject(Error('El vídeo no responde al avance.'))},7000);video.addEventListener('seeked',done,{once:true});video.addEventListener('error',fail,{once:true});signal.addEventListener('abort',abort,{once:true});video.currentTime=target});
-  }
-  async function sample(count,start,end,size,signal,callback){
-    const canvas=document.createElement('canvas');canvas.width=canvas.height=size;const ctx=canvas.getContext('2d',{willReadFrequently:true}),side=Math.min(video.videoWidth,video.videoHeight),x=(video.videoWidth-side)/2,y=(video.videoHeight-side)/2,frames=[],times=[];let previous;
-    for(let index=0;index<count;index++){
-      const target=Math.min(video.duration-.001,start+(end-start)*index/(count-1));await seek(Math.max(0,target),signal);ctx.drawImage(video,x,y,side,side,0,0,size,size);const rgba=ctx.getImageData(0,0,size,size).data;
-      if(callback){let sum=0,sum2=0,motion=0;const gray=new Float32Array(size*size);for(let p=0;p<gray.length;p++){const g=.299*rgba[p*4]+.587*rgba[p*4+1]+.114*rgba[p*4+2];gray[p]=g;sum+=g;sum2+=g*g;if(previous)motion+=Math.abs(g-previous[p])}callback({time:target,motion:previous?motion/gray.length:0,variance:sum2/gray.length-(sum/gray.length)**2});previous=gray}else frames.push(rgba.buffer);
-      times.push(target);$('progress').value=callback?index/count*30:30+index/count*30;
-    }
-    return {frames,times};
-  }
-  function workerRun(data){return new Promise((resolve,reject)=>{
-    const worker=new Worker('./candidate-worker.js');state.worker=worker;const id=crypto.randomUUID(),timer=setTimeout(()=>{worker.terminate();state.worker=null;reject(Error('El candidato superó el límite de dos minutos.'))},120000);
-    worker.onmessage=event=>{if(event.data.id!==id)return;if(event.data.type==='progress'){$('progress').value=60+event.data.value/48*40;status(`Procesando en este dispositivo: ${event.data.value}/48 imágenes…`);return}clearTimeout(timer);worker.terminate();state.worker=null;event.data.type==='error'?reject(Error(event.data.message)):resolve(event.data.result)};
-    worker.onerror=()=>{clearTimeout(timer);worker.terminate();state.worker=null;reject(Error('No se pudo iniciar el modelo local. Prepara los recursos sin conexión y vuelve a intentarlo.'))};
-    state.controller.signal.addEventListener('abort',()=>{clearTimeout(timer);worker.terminate();state.worker=null;reject(new DOMException('Cancelado','AbortError'))},{once:true});
-    worker.postMessage({id,type:'analyze',...data},data.frames);
-  })}
   async function analyzeLocal(){
     if(state.busy||!state.file||video.readyState<2)return status('Primero carga el archivo y espera a que el vídeo esté listo.',true);
-    if(current().view!=='dtl')return status('Este candidato está limitado a DTL. No se ha validado para Face On.',true);
-    const id=state.id,old=video.currentTime,started=performance.now();video.pause();state.controller=new AbortController();lock(true);$('progress').value=0;
+    if(current().view!=='dtl')return status('Este candidato está limitado a DTL. No se ha validado para Face on.',true);
+    const id=state.id,started=performance.now();state.controller=new AbortController();lock(true);$('progress').value=0;
     try{
-      status('Buscando una ventana de movimiento sin usar las referencias…');const profile=[];await sample(96,0,video.duration,96,state.controller.signal,p=>profile.push(p));const window=C.motionWindow(profile,video.duration);let result;
-      if(window.status==='rejected')result={id:'local-mark-v0.1',status:'rejected',phases:{},note:window.reason,window};
-      else{const samples=await sample(48,window.start,window.end,144,state.controller.signal);result=await workerRun({...samples,window});}
+      const result=await SwingLabLocal.analyze(state.file,{view:'DTL',signal:state.controller.signal,onProgress:(message,percent)=>{status(message);$('progress').value=percent}});
       if(state.controller.signal.aborted)throw new DOMException('Cancelado','AbortError');
-      result.totalMs=performance.now()-started;result.measuredAt=new Date().toISOString();const record=C.clone(current());record.results={...record.results,local:result};await S.save(record);if(state.id===id){updateRecord(record);renderComparison();status(result.status==='rejected'?'El candidato ha rechazado este vídeo: '+result.note:`Propuestas guardadas. Tiempo total: ${(result.totalMs/1000).toFixed(1)} s. Revisa las cinco fases.`)}
-    }catch(error){status(error.name==='AbortError'?'Proceso cancelado. Los resultados anteriores se conservan.':error.message,true)}
-    finally{state.controller=null;lock(false);if(state.id===id&&state.file){try{video.currentTime=old}catch{}}renderComparison()}
+      result.totalMs=performance.now()-started;result.measuredAt=new Date().toISOString();const record=C.clone(current());record.results={...record.results,local:result};record.timing=result.timing;await S.save(record);if(state.id===id){updateRecord(record);renderComparison();status(result.status==='rejected'?'El candidato ha rechazado este vídeo: '+result.note:`Propuestas guardadas. Tiempo total: ${(result.totalMs/1000).toFixed(1)} s. Revisa las cinco fases.`)}
+    }catch(error){status(error.name==='AbortError'?'Proceso cancelado. Los resultados anteriores se conservan.':error.message,true)}finally{state.controller=null;lock(false);renderComparison()}
   }
   function parseGlab(payload){
     if(payload?.ok===false)throw Error(payload.error||'GLAB no considera válido el análisis.');
