@@ -1,5 +1,5 @@
 /* Auditable local corrections. Collecting feedback never trains or uploads a model. */
-(function(root,factory){const api=factory(root.SwingLabVideo||(typeof require==='function'?require('./video-tools.js'):null));if(typeof module==='object'&&module.exports)module.exports=api;else root.SwingLabLearning=api})(globalThis,V=>{
+(function(root,factory){const api=factory(root.SwingLabVideo||(typeof require==='function'?require('./video-tools.js'):null),root.SwingLabReferences||(typeof require==='function'?require('./references.js'):null));if(typeof module==='object'&&module.exports)module.exports=api;else root.SwingLabLearning=api})(globalThis,(V,R)=>{
   'use strict';const PROTOCOL='swing-phases/1.0',PHASES=['Address','Takeaway','Top','Impact','Finish'],finite=Number.isFinite,clone=x=>JSON.parse(JSON.stringify(x)),safeId=x=>typeof x==='string'&&/^[-\w]{1,100}$/.test(x),hash=x=>typeof x==='string'&&/^[a-f0-9]{64}$/.test(x),stamp=x=>typeof x==='string'&&finite(Date.parse(x)),validTime=(t,d)=>finite(t)&&t>=0&&t<=d;
   function marks(value,duration){return Object.fromEntries(PHASES.filter(p=>validTime(value?.[p],duration)).map(p=>[p,value[p]]))}
   function analysisWindow(raw,duration){
@@ -7,7 +7,7 @@
     return {start:raw.start,end:raw.end,method:String(raw.method||'').slice(0,100),alternatives:Array.isArray(raw.alternatives)?raw.alternatives.filter(w=>validTime(w?.start,duration)&&validTime(w?.end,duration)&&w.end>w.start).slice(0,30).map(w=>({start:w.start,end:w.end})):[],warnings:Array.isArray(raw.warnings)?raw.warnings.slice(0,10).map(s=>String(s).slice(0,500)):[]};
   }
   function canReplaceProposal(session,previousRun,phase){
-    if(reviewMatches(session)||negativeMatches(session))return false;
+    if(session.referenceReview||reviewMatches(session)||negativeMatches(session))return false;
     if(session.phases?.[phase]==null)return true;
     return !!previousRun&&session.phases[phase]===previousRun.phases?.[phase]&&!(session.corrections||[]).some(c=>c.phase===phase&&!c.supersededBy&&c.analysisId===previousRun.runId);
   }
@@ -27,6 +27,7 @@
     const result={duration,videoSha256:hash(value.videoSha256)?value.videoSha256:null,view:value.view==='FO'?'FO':'DTL',timing:V.normalizeTiming(value.timing,duration||0),feedbackEnabled:value.feedbackEnabled!==false,analyses:duration&&Array.isArray(value.analyses)?value.analyses.map(r=>analysis(r,duration)).filter(Boolean):[],corrections:duration&&Array.isArray(value.corrections)?value.corrections.map(r=>correction(r,duration)).filter(Boolean):[],review:{status:'draft'}};
     if(reviewMatches({...value,...result,review:value.review}))result.review={status:'reviewed',protocol:PROTOCOL,videoSha256:result.videoSha256,confirmedAt:value.review.confirmedAt,reviewer:value.review.reviewer.slice(0,100),phases:marks(value.review.phases,duration)};
     if(negativeMatches({...value,...result,review:value.review}))result.review={status:'negative',protocol:PROTOCOL,videoSha256:result.videoSha256,confirmedAt:value.review.confirmedAt,reviewer:value.review.reviewer.slice(0,100),phases:{}};
+    if(R){result.referenceReview=R.snapshot(value.referenceReview,result.videoSha256);result.referenceHistory=Array.isArray(value.referenceHistory)?value.referenceHistory.map(r=>R.snapshot(r,result.videoSha256)).filter(Boolean):[]}
     return result;
   }
   function record(session,phase,previousTime,correctedTime,reviewer){
@@ -67,7 +68,7 @@
   }
   async function exportPack(sessions,store,includeVideo){
     const entries=[],records=[];
-    for(const session of sessions){const prefix='sessions/'+session.id+'/',images=await store.feedback(session.id),record={id:session.id,phases:session.phases,...normalize(session),trainingEligible:reviewMatches(session),validityLabel:negativeMatches(session)?'no-swing':reviewMatches(session)?'swing':'unconfirmed',contextImages:[]};
+    for(const session of sessions){const prefix='sessions/'+session.id+'/',images=await store.feedback(session.id),record={id:session.id,phases:session.phases,...normalize(session),trainingEligible:reviewMatches(session)&&!session.referenceReview,validityLabel:negativeMatches(session)?'no-swing':reviewMatches(session)?'swing':'unconfirmed',contextImages:[]};
       for(const image of images){const path=prefix+'contexts/'+image.key+'.jpg';record.contextImages.push({...image,blob:undefined,path});entries.push({name:path,data:image.blob})}
       if(includeVideo){const video=await store.video(session.id);if(video){const ext=video.type.includes('webm')?'webm':video.type.includes('quicktime')?'mov':'mp4';record.videoPath=prefix+'original.'+ext;entries.push({name:record.videoPath,data:video})}}
       records.push(record);

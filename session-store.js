@@ -121,7 +121,11 @@
       });
     }
     const feedback=id=>transaction(['feedback'],'readonly',(tx,done)=>{tx.objectStore('feedback').get(id).onsuccess=event=>done(event.target.result||[])});
-    return { init, list, save, video, remove, clear, feedback };
+    const references=()=>transaction(['meta'],'readonly',(tx,done)=>{tx.objectStore('meta').get('reviewed-references-v1').onsuccess=e=>done(e.target.result||[])});
+    function importReferences(records){
+      return transaction(['meta'],'readwrite',(tx,done)=>{const meta=tx.objectStore('meta');meta.get('reviewed-references-v1').onsuccess=e=>{try{const merged=SwingLabReferences.merge(e.target.result||[],records);meta.put(merged,'reviewed-references-v1');done(merged)}catch{tx.abort()}}});
+    }
+    return { init, list, save, video, remove, clear, feedback, references, importReferences };
   }
   globalThis.SwingLabStorage = { createStore, normalize, clone };
 })();

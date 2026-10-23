@@ -29,7 +29,8 @@ const phases=['Address','Takeaway','Top','Impact','Finish'];
 const store=SwingLabStorage.createStore(), clone=SwingLabStorage.clone;
 let state={current:null,videoUrl:null,videoFile:null,history:[],markMode:false,compareSelected:[],comparePhase:'',compareLayer:'overlay',compareAdjust:{},engineOnline:!!window.SwingLabLocal,engineBusy:false,installPrompt:null,storageReady:false,storageBusy:false};
 let mediaRevision=0, phaseRevision=0, engineJob=null, captureJob=null, draftBaseline=null;
-const ready=store.init().then(({history,warning})=>{state.history=history;state.storageReady=true;renderAll();if(warning)modalMsg('History recovered.',warning)}).catch(()=>modalMsg('Storage unavailable.','Your browser could not open local storage. Sessions cannot be saved. Existing data has not been removed.'));
+let referenceCatalog=[];
+const ready=store.init().then(async({history,warning})=>{state.history=history;state.storageReady=true;renderAll();if(warning)modalMsg('History recovered.',warning);try{referenceCatalog=await store.references?.()||[];updateReferenceUI()}catch{showToast('The reference library could not be read. Your sessions are available.')}}).catch(()=>modalMsg('Storage unavailable.','Your browser could not open local storage. Sessions cannot be saved. Existing data has not been removed.'));
 const notesInput=document.getElementById('sessionNotes');
 notesInput.addEventListener('input',()=>{if(state.current)state.current.notes=notesInput.value;updateSessionStatus()});
 function setVh(){root.style.setProperty('--vh',`${window.innerHeight*.01}px`)}setVh();addEventListener('resize',setVh);
@@ -99,7 +100,7 @@ async function saveSession(){
     if(file){let metadata;try{metadata=await SwingLabLocal.prepare(file)}catch{}if(metadata){if(summary.videoSha256&&summary.videoSha256!==metadata.sha256)throw Error('Saved video identity mismatch');Object.assign(summary,{duration:metadata.duration,videoSha256:metadata.sha256,timing:metadata.timing})}}
     const feedback=file?await SwingLabLearning.collect(file,summary,message=>setAnalysisProgress(true,message)):[];
     const saved=SwingLabStorage.normalize(summary);await store.save(saved,file,feedback);savedSuccessfully=true;state.history=[clone(saved),...state.history.filter(s=>s.id!==saved.id)];
-    if(state.current?.id===saved.id){for(const key of ['duration','videoSha256','timing','analyses','corrections','review','feedbackEnabled','view'])state.current[key]=clone(saved[key]);draftBaseline=JSON.stringify(saved)}
+    if(state.current?.id===saved.id){for(const key of ['duration','videoSha256','timing','analyses','corrections','review','feedbackEnabled','view','referenceReview','referenceHistory'])if(key in saved)state.current[key]=clone(saved[key]);draftBaseline=JSON.stringify(saved)}
     modalMsg('Session saved.',file?'Your video, review and correction context were saved on this device.':'Your captures and notes were saved. The original video is unavailable for this older session.');renderAll();return true;
   }catch{storageFailure();return false}finally{state.storageBusy=false;setAnalysisProgress(true,savedSuccessfully?'Review and correction context saved on this device.':'Save failed. The previous saved review is unchanged.');updateSessionStatus()}
 }
@@ -169,6 +170,7 @@ async function analyzeWithEngine(file){
   finally{clearTimeout(timer);if(isCurrent()){engineJob=null;state.engineBusy=false;setEngineStatus('online');setAnalysisProgress(!analysisProgress.hidden,analysisProgressText.textContent);updateSessionStatus()}}
 }
 function updateLearningUI(){
+  updateReferenceUI();
   const session=state.current,run=session?.analyses?.at(-1),busy=state.engineBusy||state.storageBusy;
   const analyze=document.getElementById('analyzeLocal');if(analyze){analyze.disabled=!state.videoFile||video.readyState<2||busy||!state.engineOnline;analyze.textContent=run?'Run local marking again':'Analyze on this device'}
   const cancel=document.getElementById('cancelLocal');if(cancel)cancel.hidden=!state.engineBusy;
@@ -183,6 +185,52 @@ function updateLearningUI(){
   const body=document.getElementById('phaseAudit');if(body)body.innerHTML=phases.map(p=>{const proposed=run?.phases?.[p],current=session?.phases?.[p],delta=Number.isFinite(proposed)&&Number.isFinite(current)?current-proposed:null;return `<tr><td>${p}</td><td>${Number.isFinite(proposed)?proposed.toFixed(3)+' s':'—'}</td><td>${Number.isFinite(current)?current.toFixed(3)+' s':'—'}</td><td>${delta==null?'—':(delta>0?'+':'')+delta.toFixed(3)+' s'}</td></tr>`}).join('');
   const known=session?.timing?.verified;for(const [action,label]of [['back-frame',known?'−1 frame':'−20 ms'],['forward-frame',known?'+1 frame':'+20 ms']]){const button=document.querySelector(`#screenReview [data-action="${action}"]`);if(button){button.textContent=label;button.setAttribute('aria-label',known?(action==='back-frame'?'Previous source frame':'Next source frame'):(action==='back-frame'?'Back 20 milliseconds':'Forward 20 milliseconds'))}}
 }
+function updateReferenceUI(){
+  const status=document.getElementById('referenceLibraryStatus'),detail=document.getElementById('referenceComparison');if(!status||!detail)return;
+  status.textContent=`${referenceCatalog.length} reviewed videos on this device. Importing references keeps existing session marks.`;
+  const session=state.current,entry=referenceCatalog.find(r=>SwingLabReferences.matches(r,session?.videoSha256,session?.duration)),applied=session?.referenceReview,shown=entry||applied;
+  const busy=state.storageBusy||state.engineBusy;
+  document.getElementById('matchReference').disabled=!state.videoFile||busy;
+  document.getElementById('applyReference').disabled=!entry||!state.videoFile||busy;
+  document.getElementById('importReferenceFile').disabled=busy;
+  const local=document.getElementById('loadPrivateReferences');local.hidden=!['localhost','127.0.0.1','[::1]'].includes(location.hostname);local.disabled=busy;
+  const choices=document.getElementById('referenceClipChoice'),selected=choices.value;choices.innerHTML=referenceCatalog.map(r=>`<option value="${esc(r.sha256)}">${esc(r.title)}${r.reference.status==='negative'?' · No swing':''}</option>`).join('');if(referenceCatalog.some(r=>r.sha256===selected))choices.value=selected;document.getElementById('localReferenceClips').hidden=local.hidden||!referenceCatalog.length;document.getElementById('openLocalReference').disabled=busy;choices.disabled=busy;
+  if(!shown){detail.textContent=session?'Match the original video to find its reviewed phases.':'Choose a video to compare it with the reference library.';return}
+  const r=shown.reference,run=session?.analyses?.at(-1),sameApplied=applied&&JSON.stringify(applied.reference)===JSON.stringify(r);
+  detail.innerHTML=`<p><strong>${esc(shown.title)}</strong><br>${esc(r.reviewer)} · ${esc(r.updatedAt.slice(0,10))} · v${r.version}${sameApplied?' · Applied to this session':''}</p>${r.status==='negative'?'<p>Reviewed control: this clip does not contain a complete swing.</p>':`<div class="learning-table"><table><thead><tr><th>Phase</th><th>Reference / uncertainty</th><th>Model difference</th></tr></thead><tbody>${phases.map(p=>{const m=r.phases[p.toLowerCase()],t=m.time,proposed=run?.phases?.[p],delta=Number.isFinite(t)&&Number.isFinite(proposed)?proposed-t:null;return `<tr><td>${p}</td><td>${t==null?'Unresolved':t.toFixed(3)+' s'}${m.range?`<br>${m.range[0].toFixed(3)}–${m.range[1].toFixed(3)} s`:''}<br><small>${esc(m.reason)}</small></td><td>${delta==null?'—':(delta>0?'+':'')+delta.toFixed(3)+' s'}</td></tr>`}).join('')}</tbody></table></div>`}<p class="field-hint">Ranges remain part of the saved reference. Applying it keeps previous marks and model runs. Assisted references are excluded from point-label training exports.</p>`;
+}
+async function importReferencePayload(payload){
+  const records=SwingLabReferences.pack(payload);referenceCatalog=await store.importReferences(records);updateReferenceUI();showToast(`${referenceCatalog.length} reviewed references available on this device`);
+}
+async function readReferenceFile(file){
+  if(!file||state.engineBusy||state.storageBusy)return;state.storageBusy=true;updateSessionStatus();
+  try{await ready;if(file.size>20*1024*1024)throw Error('Choose a reference JSON file smaller than 20 MB.');await importReferencePayload(JSON.parse(await file.text()))}catch(error){modalMsg('References not imported.',error.message)}finally{state.storageBusy=false;document.getElementById('referenceFileInput').value='';updateSessionStatus()}
+}
+async function loadPrivateReferences(){
+  if(!['localhost','127.0.0.1','[::1]'].includes(location.hostname)||state.storageBusy||state.engineBusy)return;
+  state.storageBusy=true;updateSessionStatus();try{await ready;const response=await fetch('/__lab/manifest.json',{cache:'no-store'});if(!response.ok)throw Error('Start the local review library to load its references.');await importReferencePayload(await response.json())}catch(error){modalMsg('References not imported.',error.message)}finally{state.storageBusy=false;updateSessionStatus()}
+}
+async function matchReference(apply=false){
+  if(!state.current||!state.videoFile||state.storageBusy||state.engineBusy)return;
+  const session=state.current,file=state.videoFile;state.storageBusy=true;updateSessionStatus();
+  try{const info=await SwingLabLocal.prepare(file);if(state.current!==session||state.videoFile!==file)return;Object.assign(session,{duration:info.duration,videoSha256:info.sha256,timing:info.timing});
+    const entry=referenceCatalog.find(r=>SwingLabReferences.matches(r,info.sha256,info.duration));if(!entry){showToast('No reviewed reference matches this original video.');return}
+    if(apply){SwingLabReferences.apply(session,entry);phaseRevision++;state.markMode=false;renderPhases();renderCaptures();showToast('Reviewed phases applied. Save to keep this session.')}else showToast('Reviewed reference found. Compare it below before applying.');
+  }catch(error){modalMsg('Reference unavailable.',error.message)}finally{state.storageBusy=false;updateSessionStatus()}
+}
+document.getElementById('referenceFileInput')?.addEventListener('change',e=>readReferenceFile(e.target.files?.[0]));
+document.getElementById('importReferenceFile')?.addEventListener('click',()=>document.getElementById('referenceFileInput').click());
+document.getElementById('loadPrivateReferences')?.addEventListener('click',loadPrivateReferences);
+document.getElementById('matchReference')?.addEventListener('click',()=>matchReference());
+document.getElementById('applyReference')?.addEventListener('click',()=>matchReference(true));
+document.getElementById('openLocalReference')?.addEventListener('click',async()=>{
+  if(state.storageBusy||state.engineBusy||!['localhost','127.0.0.1','[::1]'].includes(location.hostname))return;
+  const entry=referenceCatalog.find(r=>r.sha256===document.getElementById('referenceClipChoice').value);if(!entry)return;
+  state.storageBusy=true;updateSessionStatus();let file;
+  try{const response=await fetch('/__lab/private/'+encodeURIComponent(entry.id),{cache:'no-store'});if(!response.ok)throw Error('The original video is absent from the local library.');const blob=await response.blob();if(blob.size>150*1024*1024)throw Error('Choose a local clip smaller than 150 MB.');file=new File([blob],entry.title+'.mp4',{type:blob.type||'video/mp4'});const digest=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer()))).map(x=>x.toString(16).padStart(2,'0')).join('');if(digest!==entry.sha256)throw Error('The original video does not match its reviewed reference.')}catch(error){file=null;modalMsg('Video unavailable.',error.message)}finally{state.storageBusy=false;updateSessionStatus()}
+  if(file){await loadVideoFile(file);if(state.videoFile===file)await matchReference()}
+});
+ready.then(()=>{if(new URLSearchParams(location.search).get('reviewLibrary')==='local'&&['localhost','127.0.0.1','[::1]'].includes(location.hostname)){showApp();go('profile');loadPrivateReferences()}});
 async function confirmPhaseReview(){
   if(!state.current||!state.videoFile||state.engineBusy||state.storageBusy)return;
   const session=state.current;state.storageBusy=true;updateSessionStatus();

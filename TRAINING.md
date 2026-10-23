@@ -64,3 +64,10 @@ Las correcciones históricas se importan como borradores hasta alinearlas con el
 - Comparar cada candidato con la versión instalada y conservar la anterior. Publicar nuevos pesos solo después de comprobar que mejora los criterios acordados, junto con la paridad de la exportación y su rendimiento sin conexión.
 
 El marcador actual fuerza una secuencia cuando hay suficiente movimiento; el filtro de imagen/movimiento no es un detector entrenado de presencia de swing. Los controles negativos reales deben permanecer en la evaluación, incluidos los que requieren una copia de vídeo compatible con el navegador. No se debe ajustar una regla solo para superar esos pocos ejemplos.
+# Reviewed reference library
+
+The app accepts protocol 1.0 reference JSON with original-video SHA-256, duration, reviewer, review date and five phase objects (`time`, optional `range`, `reason`). Missing phases need an explicit reason. A reviewed negative has no phase times. Source timestamps are used where readable; unknown container timing stays in seconds. Review all frames in context before accepting a reference; a representative time inside an uncertainty range is not exact contact ground truth.
+
+Importing references does not modify sessions. Applying a matched reference is explicit, retains previous marks/review metadata and keeps model runs. Reference versions are stored separately on the device. Lab edits include a review date and version so they can be re-imported. Loading private samples offers newer references without silently replacing an existing lab review; the version-history control applies the available revision explicitly.
+
+Saved `referenceReview` and `referenceHistory` preserve provenance and ranges in feedback ZIP files and private training indexes. Assisted references are excluded from point-label and validity training until a human adjudicates them; nothing retrains automatically. Group related recordings and players before any future split, and reserve new independent videos for evaluation. No private source metadata is distributed with the app.

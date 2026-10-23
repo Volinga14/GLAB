@@ -83,8 +83,9 @@ for row in manifest['records']:
         valid = valid and isinstance(value, (float, int)) and not isinstance(value, bool) and previous < value <= duration
         if isinstance(value, (float, int)):
             previous = value
-    confirmed = bool(valid and digest in expected_hashes and review.get('status') == 'reviewed' and review.get('protocol') == protocol and review.get('videoSha256') == digest and review.get('phases') == phases and review.get('reviewer') and review.get('confirmedAt'))
-    negative = bool(not phases and digest in expected_hashes and review.get('status') == 'negative' and review.get('protocol') == protocol and review.get('videoSha256') == digest and review.get('reviewer') and review.get('confirmedAt'))
+    assisted_reference = row.get('referenceReview')
+    confirmed = bool(not assisted_reference and valid and digest in expected_hashes and review.get('status') == 'reviewed' and review.get('protocol') == protocol and review.get('videoSha256') == digest and review.get('phases') == phases and review.get('reviewer') and review.get('confirmedAt'))
+    negative = bool(not assisted_reference and not phases and digest in expected_hashes and review.get('status') == 'negative' and review.get('protocol') == protocol and review.get('videoSha256') == digest and review.get('reviewer') and review.get('confirmedAt'))
     video = originals.get(digest)
     if row.get('videoPath'):
         video = resolve_export_path(row['videoPath'])
@@ -106,6 +107,10 @@ for row in manifest['records']:
                     'contextUse': 'Review previews. Re-extract source frames from the original for global training or unverified decoder timestamps.'})
     if confirmed:
         phase_sets.setdefault(digest, []).append((identifier, phases))
+    records[-1]['referenceReview'] = assisted_reference
+    records[-1]['referenceHistory'] = row.get('referenceHistory', [])
+    if assisted_reference:
+        problems.append({'id': identifier, 'reason': 'Assisted reference with uncertainty: preserve for comparison, exclude from point-label and validity training pending human adjudication'})
     if not video:
         problems.append({'id': identifier, 'reason': 'Original video absent; context-only export remains useful for review, not full-sequence training'})
     if confirmed and row.get('view') != 'DTL':

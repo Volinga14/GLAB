@@ -79,10 +79,14 @@ Validated on 14 October 2026: 19 logic tests and 13 browser integration checks p
 
 ## Analysis and remaining work
 
+Reviewed references can be imported from a private JSON file in Profile. Match the original video, compare the reviewer, five marks and uncertainty ranges, then explicitly apply and save. Importing only updates a separate local reference library; it does not replace saved session marks. Newer reference versions keep the previous version, and conflicting versions with the same date are rejected atomically. Applying retains previous marks/review metadata and existing model runs. The library uses the existing IndexedDB meta store, without a database upgrade. On localhost, the local review server can provide its private library directly and open a selected reviewed clip without a file picker. No real references or videos ship in this repository.
+
+Assisted references remain identifiable in saved sessions and feedback exports. Their uncertainty ranges are retained, and the training importer excludes them from point-label and validity training pending human adjudication. Re-running the marker preserves applied references and records a separate proposal. Clearing session history keeps the separate reference library.
+
 The main app offers only the local marker. Old service URLs and `engine` query parameters are ignored. Profile provides offline preparation instead of an external service address. GLAB is preserved separately and is available only through the explicit laboratory comparison tools.
 
 The local model uses frozen GLAB weights and still needs visual review. The motion filter is not a trained swing-presence classifier; other movement can receive phase proposals. Users can explicitly mark a clip as having no swing, with negative feedback kept separate from phase labels. See [TRAINING.md](TRAINING.md) for the private feedback, label reconciliation and evaluation workflow.
 
-Validated for this version: 42 logic checks, 13 session/browser checks, 10 integrated learning checks and nine marking-lab checks. Responsive frontend checks also passed. Tests include real on-device inference, three-source-frame corrections, model proposal preservation, correction-image rollback, local ZIP export, source timing and offline use. They do not establish phase accuracy or real-phone performance.
+Validated for this version: 54 logic checks, 13 session/browser checks, 10 integrated learning checks, nine marking-lab checks, four segment checks and four reference-library checks. Responsive frontend checks also passed. Tests include real on-device inference, three-source-frame corrections, model proposal preservation, correction-image rollback, local ZIP export, source timing, reference identity/version conflicts, uncertainty persistence and offline use. They do not establish phase accuracy or real-phone performance.
 
 Remaining work includes independent phase/validity evaluation, candidate training, Android/iOS camera and installation testing, numerical swing analysis, validated coaching guidance, full session backup and optional synchronization.

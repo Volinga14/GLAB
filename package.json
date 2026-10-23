@@ -1,6 +1,6 @@
 {
   "name": "swing-lab",
-  "version": "0.33.0",
+  "version": "0.35.0",
   "private": true,
   "scripts": {
     "test": "node --test --test-isolation=none tests/*.test.cjs",
@@ -8,7 +8,9 @@
     "test:frontend": "node tests/frontend.cjs",
     "test:marking": "node tests/marking-browser.cjs",
     "lab": "node tools/serve-marking-lab.cjs",
-    "test:learning": "node tests/learning-browser.cjs"
+    "test:learning": "node tests/learning-browser.cjs",
+    "test:references": "node tests/references-browser.cjs",
+    "test:segment": "node tests/segment-browser.cjs"
   },
   "engines": {
     "node": ">=24"
