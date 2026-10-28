@@ -27,15 +27,15 @@ function updateSessionStatus(){
 const installButtons=()=>document.querySelectorAll('[data-action="install-app"]');
 const phases=['Address','Takeaway','Top','Impact','Finish'];
 const store=SwingLabStorage.createStore(), clone=SwingLabStorage.clone;
-let state={current:null,videoUrl:null,videoFile:null,history:[],markMode:false,compareSelected:[],comparePhase:'',compareLayer:'overlay',compareAdjust:{},engineOnline:!!window.SwingLabLocal,engineBusy:false,installPrompt:null,storageReady:false,storageBusy:false};
+let state={current:null,videoUrl:null,videoFile:null,history:[],markMode:false,compareSelected:[],comparePhase:'',compareLayer:'overlay',compareAdjust:{},engineOnline:!!window.SwingLabLocal,engineBusy:false,reviewStep:'impact',installPrompt:null,storageReady:false,storageBusy:false};
 let mediaRevision=0, phaseRevision=0, engineJob=null, captureJob=null, draftBaseline=null;
-let referenceCatalog=[];
+let referenceCatalog=[],guidedPending=false;
 const ready=store.init().then(async({history,warning})=>{state.history=history;state.storageReady=true;renderAll();if(warning)modalMsg('History recovered.',warning);try{referenceCatalog=await store.references?.()||[];updateReferenceUI()}catch{showToast('The reference library could not be read. Your sessions are available.')}}).catch(()=>modalMsg('Storage unavailable.','Your browser could not open local storage. Sessions cannot be saved. Existing data has not been removed.'));
 const notesInput=document.getElementById('sessionNotes');
 notesInput.addEventListener('input',()=>{if(state.current)state.current.notes=notesInput.value;updateSessionStatus()});
 function setVh(){root.style.setProperty('--vh',`${window.innerHeight*.01}px`)}setVh();addEventListener('resize',setVh);
 function showApp(){if(landing)landing.classList.remove('is-active');if(app)app.classList.add('is-active');if(landing)landing.inert=true;try{localStorage.setItem('swinglab_started_v1','1')}catch{}go('home')}
-function go(s){if(!screens[s])return;hideToast();if(s!=='review')video.pause();Object.entries(screens).forEach(([k,el])=>{el.classList.toggle('is-current',k===s);el.inert=k!==s;el.setAttribute('aria-hidden',String(k!==s))});document.querySelectorAll('.nav-item').forEach(b=>{const active=b.dataset.nav===s||(['review','results'].includes(s)&&b.dataset.nav==='upload');b.classList.toggle('is-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});screens[s].scrollTop=0;const sc=screens[s].querySelector('.screen-scroll');if(sc)sc.scrollTop=0;renderAll()}
+function go(s){if(!screens[s])return;hideToast();if(s!=='review')video.pause();Object.entries(screens).forEach(([k,el])=>{el.classList.toggle('is-current',k===s);el.inert=k!==s;el.setAttribute('aria-hidden',String(k!==s))});document.querySelectorAll('.nav-item').forEach(b=>{const active=b.dataset.nav===s||(['review','results'].includes(s)&&b.dataset.nav==='upload');b.classList.toggle('is-active',active);if(active)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});screens[s].scrollTop=0;const sc=screens[s].querySelector('.screen-scroll');if(sc)sc.scrollTop=0;renderAll();if(s==='review'&&state.videoFile&&video.readyState>=2)window.SwingLabEditor?.open?.()}
 function modalMsg(t,txt=''){modalTitle.textContent=t;modalText.textContent=txt;if(t==='Session saved.'){showToast('Session saved on this device');updateSessionStatus();return}dialogReturn=document.activeElement;modal.hidden=false;app.inert=true;if(landing)landing.inert=true;modal.querySelector('.modal-back')?.focus()}
 function closeModal(){modal.hidden=true;app.inert=false;if(landing)landing.inert=!landing.classList.contains('is-active');dialogReturn?.focus?.()}
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.action)handle(b.dataset.action);if(b.dataset.nav)go(b.dataset.nav);if(b.dataset.openSession)openSession(b.dataset.openSession);if(b.dataset.deleteId)deleteSession(b.dataset.deleteId);if(b.dataset.compareId)toggleCompare(b.dataset.compareId);if(b.dataset.comparePhase)renderCompareViewer(b.dataset.comparePhase);if(b.dataset.modalTitle)modalMsg(b.dataset.modalTitle);if(b.hasAttribute('data-close'))closeModal()});
@@ -50,21 +50,40 @@ async function loadVideoFile(file){
   if(!file.size||(!file.type.startsWith('video/')&&!/\.(mp4|mov|webm|m4v)$/i.test(file.name)))return modalMsg('Choose a video.','This file is empty or is not a supported video.');
   if(!canLeaveSession())return;
   releaseMedia();
-  state.current={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title:file.name.replace(/\.[^.]+$/,''),fileName:file.name,date:new Date().toISOString(),phases:{},captures:{},notes:'',drawings:[],duration:null,videoSha256:null,view:profile.view,feedbackEnabled:true,analyses:[],corrections:[],review:{status:'draft'}};
+  state.current={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title:file.name.replace(/\.[^.]+$/,''),fileName:file.name,date:new Date().toISOString(),phases:{},captures:{},notes:'',drawings:[],duration:null,videoSha256:null,view:'DTL',feedbackEnabled:true,analyses:[],corrections:[],review:{status:'draft'}};
   attachMedia(file);state.markMode=false;hydrateSession();go('review');
   const sourceSession=state.current,sourceRevision=mediaRevision;
   SwingLabLocal.prepare(file).then(info=>{if(state.current!==sourceSession||mediaRevision!==sourceRevision)return;Object.assign(sourceSession,{duration:info.duration,videoSha256:info.sha256,timing:info.timing});updateSessionStatus()}).catch(()=>{});
   videoInput.value='';cameraInput.value='';
 }
 video.addEventListener('loadedmetadata',()=>{if(state.current&&Number.isFinite(video.duration))state.current.duration=video.duration;timeline.value=0;updateTime()});
-video.addEventListener('loadeddata',()=>{captureVideoPreview();updateSessionStatus()});
+video.addEventListener('loadeddata',()=>{captureVideoPreview();updateSessionStatus();if(guidedPending){guidedPending=false;window.SwingLabEditor?.open?.()}});
 video.addEventListener('error',()=>{if(state.videoFile)modalMsg('Video cannot be played.','Try an MP4 or WebM video supported by your browser. Your saved sessions are unchanged.')});
 video.addEventListener('timeupdate',updateTime);video.addEventListener('play',updateReviewPlayButton);video.addEventListener('pause',updateReviewPlayButton);timeline.addEventListener('input',()=>{if(Number.isFinite(video.duration))video.currentTime=(+timeline.value/1000)*video.duration});
 function updateReviewPlayButton(){if(reviewPlayButton){reviewPlayButton.textContent=video.paused?'Play':'Pause';reviewPlayButton.classList.toggle('is-playing',!video.paused)}}
 function togglePlay(){if(!state.videoFile)return modalMsg('No video loaded.','Upload or record a video first.');if(video.paused)video.play().catch(()=>modalMsg('Playback unavailable.','Try another video supported by your browser.'));else video.pause();updateReviewPlayButton()}
 function stepFrame(d){if(!video.src)return;video.pause();video.currentTime=Math.max(0,Math.min(video.duration||0,SwingLabVideo.step(state.current?.timing,video.currentTime,d,video.duration||0)))}
 function updateTime(){if(!video.duration)return;timeline.value=Math.round((video.currentTime/video.duration)*1000);document.getElementById('currentTimeLabel').textContent=`${video.currentTime.toFixed(2)}s`;document.getElementById('durationLabel').textContent=`${video.duration.toFixed(2)}s`;updateReviewPlayButton()}
-function captureVideoPreview(){if(!state.current||!state.videoFile||state.current.thumb||video.readyState<2)return;try{const c=document.createElement('canvas'),scale=Math.min(1,480/video.videoWidth);c.width=Math.round(video.videoWidth*scale);c.height=Math.round(video.videoHeight*scale);c.getContext('2d').drawImage(video,0,0,c.width,c.height);state.current.thumb=c.toDataURL('image/jpeg',.78);renderHome()}catch{}}
+const previewRequests=new Map(),previewAttempted=new Set();
+function captureVideoPreview(){if(state.current&&state.videoFile&&video.readyState>=2)requestPreview(state.current,state.videoFile)}
+function requestPreview(session,file){
+ if(!session?.id||file&&(video.readyState<2||!video.videoWidth))return;
+ const key=session.id;
+ if(previewRequests.has(key)||previewAttempted.has(key))return;
+ const ownFile=file,sha=session.videoSha256;
+ const task=(async()=>{
+  previewAttempted.add(key);const original=ownFile||await store.video(session.id);if(!original)return;
+  const preferred=session.phases?.Impact??session.phases?.Top??session.duration*.5;
+  const thumb=await SwingLabVideo.thumbnail(original,{time:preferred});if(!thumb)return;
+  const current=state.current?.id===session.id?state.current:null;
+  if(current&&(!ownFile||state.videoFile===ownFile)){current.thumb=thumb;if(draftBaseline){const baseline=JSON.parse(draftBaseline);baseline.thumb=thumb;draftBaseline=JSON.stringify(baseline)}}
+  state.history=state.history.map(s=>s.id===session.id?{...s,thumb}:s);
+  if(state.history.some(s=>s.id===session.id))await store.updateThumbnail?.(session.id,thumb,sha);
+  renderHome();renderHistory();
+ })().catch(()=>{}).finally(()=>{previewRequests.delete(key);renderHome()});
+ previewRequests.set(key,task);
+}
+
 function frameLabel(t,session=state.current){const index=SwingLabVideo.frameIndex(session?.timing,t);return index==null?`${(t||0).toFixed(3)}s`:`F${index}`}
 window.SwingLabSourceTiming=()=>state.current?.timing||null;
 function renderPhases(){const markBtn=document.getElementById('markModeBtn');if(markBtn){markBtn.classList.toggle('is-active',state.markMode);markBtn.textContent=state.markMode?'Done':'Mark';markBtn.setAttribute('aria-pressed',String(state.markMode))}if(!state.current){phaseList.innerHTML='<p class="empty-text">Upload a video to mark phases.</p>';return}phaseList.innerHTML=phases.map(p=>{const t=state.current.phases[p];return`<button class="phase-btn ${t!=null?'is-marked':''} ${state.markMode?'is-mark-mode':''}" data-phase="${p}"><strong>${p}</strong><span>${t!=null?frameLabel(t):(state.markMode?'Set':'--')}</span></button>`}).join('');phaseList.querySelectorAll('[data-phase]').forEach(b=>b.onclick=()=>{if(!state.videoFile)return modalMsg('Original video unavailable.','This older session contains captures and notes only.');const p=b.dataset.phase,t=state.current.phases[p];if(state.markMode){setPhase(p,video.currentTime||0);updateSessionStatus();return}if(t!=null){video.pause();video.currentTime=Math.max(0,Math.min(video.duration||t,t));updateTime();return}setPhase(p,video.currentTime||0);updateSessionStatus()})}
@@ -118,6 +137,7 @@ function canLeaveSession(){return !hasUnsavedChanges()||confirm('This session ha
 window.addEventListener('beforeunload',event=>{if(hasUnsavedChanges()){event.preventDefault();event.returnValue=''}});
 function cancelAnalysis(){if(engineJob){engineJob.controller.abort();engineJob=null}state.engineBusy=false;setEngineStatus(state.engineOnline?'online':'offline');setAnalysisProgress(false)}
 function releaseMedia(){
+  guidedPending=false;window.SwingLabEditor?.release?.();
   mediaRevision++;phaseRevision++;cancelAnalysis();captureJob?.abort();captureJob=null;
   video.pause();video.removeAttribute('src');video.load();
   const fullscreen=document.getElementById('fullscreenVideo');fullscreen.pause();fullscreen.removeAttribute('src');fullscreen.load();document.getElementById('fullscreenEditor').hidden=true;
@@ -126,7 +146,7 @@ function releaseMedia(){
   document.getElementById('videoEmpty').style.display='';document.getElementById('videoEmpty').textContent='No video loaded';timeline.value=0;
   document.getElementById('currentTimeLabel').textContent='0.00s';document.getElementById('durationLabel').textContent='0.00s';
 }
-function attachMedia(file){state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none';document.getElementById('useAnalysisRange').checked=false;document.getElementById('analysisRangeStart').value='0';document.getElementById('analysisRangeEnd').value=''}
+function attachMedia(file){state.reviewStep=state.current?.analyses?.length||phaseCount(state.current)>1?'review':state.current?.impactReference?'analyze':'impact';guidedPending=true;state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none';document.getElementById('useAnalysisRange').checked=false;document.getElementById('analysisRangeStart').value='0';document.getElementById('analysisRangeEnd').value=''}
 function setPhase(phase,time){
   if(!state.current||!state.videoFile||state.storageBusy||!phases.includes(phase)||!Number.isFinite(time))return;
   const limit=Number.isFinite(video.duration)?video.duration:time;state.current.duration=limit;
@@ -136,11 +156,11 @@ function setPhase(phase,time){
   SwingLabLearning.record(state.current,phase,state.current.phases[phase],target,profile.name);
   phaseRevision++;state.current.phases[phase]=target;delete state.current.captures[phase];renderPhases();renderCaptures();updateSessionStatus();
 }
-function markImpactReference(){
+function markImpactReference(time=video.currentTime){
   if(!state.current||!state.videoFile||state.engineBusy||state.storageBusy||video.readyState<2)return;
-  video.pause();const t=video.currentTime;
+  video.pause();const t=time;
   if(!Number.isFinite(t)||t<=0||t>=video.duration)return showToast('Choose an impact frame inside the video');
-  setPhase('Impact',t);
+  setPhase('Impact',t);state.reviewStep='analyze';window.SwingLabEditor?.refresh?.();
   showToast('Impact marked. Tap Analyze to recalculate the other phases');
 }
 function jumpImpactReference(){
@@ -153,7 +173,7 @@ function clearImpactReference(){
   showToast('Reference cleared. Existing phase marks were kept');
 }
 function setEngineStatus(status,detail=''){if(status!=='busy')state.engineOnline=status==='online';if(engineStatusDot)engineStatusDot.className=`engine-dot is-${status}`;if(engineStatusText)engineStatusText.textContent=detail||({online:'Ready on device',checking:'Preparing…',offline:'Unavailable',busy:'Marking locally'}[status]||'Offline')}
-function setAnalysisProgress(on,text=''){if(!analysisProgress)return;analysisProgress.hidden=!on;analysisProgress.classList.toggle('is-result',!state.engineBusy&&!state.storageBusy);const heading=analysisProgress.querySelector('strong');if(heading)heading.textContent=state.storageBusy?'Saving review context':state.engineBusy?'Analyzing swing':'Analysis status';if(analysisProgressText)analysisProgressText.textContent=text||'Analyzing swing...'}
+function setAnalysisProgress(on,text=''){if(!analysisProgress)return;analysisProgress.hidden=!on;analysisProgress.classList.toggle('is-result',!state.engineBusy&&!state.storageBusy);const heading=analysisProgress.querySelector('strong');if(heading)heading.textContent=state.storageBusy?'Saving review context':state.engineBusy?'Analyzing swing':'Analysis status';if(analysisProgressText)analysisProgressText.textContent=text||'Analyzing swing...';window.SwingLabEditor?.refresh?.()}
 function isStandalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
 function updateInstallButtons(){installButtons().forEach(b=>{b.hidden=isStandalone();b.innerHTML=uiIcon('download')+'<span>Install app</span>'})}
 async function installApp(){if(isStandalone())return modalMsg('Swing Lab is installed.','Open it from your home screen whenever you want to analyze a swing.');if(state.installPrompt){const promptEvent=state.installPrompt;state.installPrompt=null;promptEvent.prompt();const choice=await promptEvent.userChoice.catch(()=>({outcome:'dismissed'}));updateInstallButtons();return modalMsg(choice.outcome==='accepted'?'Installing Swing Lab.':'Install was cancelled.',choice.outcome==='accepted'?'The app will appear on your home screen once the browser finishes installing it.':'You can try again from the Install button.')}const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);modalMsg('Install Swing Lab.',isiOS?'In Safari, tap Share and choose Add to Home Screen.':'Open the browser menu and choose Install app or Add to Home screen. If it does not appear yet, refresh this page once.')}
@@ -179,7 +199,7 @@ async function analyzeWithEngine(file){
     const estimated=Object.fromEntries(phases.filter(p=>Number.isFinite(result.phases?.[p.toLowerCase()])).map(p=>[p,result.phases[p.toLowerCase()]]));
     Object.assign(job.session,{duration:result.duration,videoSha256:result.videoSha256,timing:result.timing});if(job.session.impactReference)job.session.impactReference.videoSha256=result.videoSha256;
     const run={runId:crypto.randomUUID(),modelId:result.id,protocol:SwingLabLearning.PROTOCOL,checkpointSha256:result.checkpointSha256,modelFiles:result.modelFiles,videoSha256:result.videoSha256,createdAt:result.createdAt,status:result.status,view:job.session.view||'DTL',phases:clone(estimated),window:result.window,sampleTimes:result.sampleTimes||[],preprocessing:result.preprocessing,impactEvidence:result.impactEvidence,audioCandidates:result.audioCandidates,initialPhases:Object.fromEntries(phases.filter(p=>Number.isFinite(result.initialPhases?.[p.toLowerCase()])).map(p=>[p,result.initialPhases[p.toLowerCase()]])),note:result.note};
-    job.session.analyses=job.session.analyses||[];job.session.analyses.push(run);
+    job.session.analyses=job.session.analyses||[];job.session.analyses.push(run);if(result.status==='needs-review')state.reviewStep='review';
     if(result.status!=='needs-review'){if(phaseRevision===job.marks&&replaceable.length){for(const p of replaceable){delete job.session.phases[p];delete job.session.captures[p]}phaseRevision++;renderPhases();renderCaptures()}setAnalysisProgress(true,result.status==='rejected'?'No usable swing information was found. You can mark phases manually.':result.note);return}
     if(phaseRevision!==job.marks){setAnalysisProgress(true,'Local analysis finished. Your manual phase changes were kept; the proposals are available below.');return}
     // Replace untouched automatic marks; retain edited and confirmed references.
@@ -189,7 +209,7 @@ async function analyzeWithEngine(file){
   finally{clearTimeout(timer);if(isCurrent()){engineJob=null;state.engineBusy=false;setEngineStatus('online');setAnalysisProgress(!analysisProgress.hidden,analysisProgressText.textContent);updateSessionStatus()}}
 }
 function updateLearningUI(){
-  updateReferenceUI();
+  updateReferenceUI();window.SwingLabEditor?.refresh?.();
   const session=state.current,run=session?.analyses?.at(-1),busy=state.engineBusy||state.storageBusy;
   const analyze=document.getElementById('analyzeLocal');if(analyze){analyze.disabled=!state.videoFile||video.readyState<2||busy||!state.engineOnline;analyze.textContent=Number.isFinite(session?.impactReference?.time)?'Analyze from my impact':run?'Run local marking again':'Analyze on this device'}
   const reference=session?.impactReference,hasReference=Number.isFinite(reference?.time),playable=!!state.videoFile&&video.readyState>=2;
@@ -361,7 +381,18 @@ function renderStreak(){
 }
 
 function shortDate(d){try{return new Date(d).toLocaleDateString(undefined,{month:'short',day:'numeric'})}catch{return'New'}}
-function renderHome(){renderStreak();if(!latestCarousel)return;const sessions=[state.current,...state.history.filter(s=>!state.current||s.id!==state.current.id)].filter(Boolean).slice(0,6);if(!sessions.length){latestCarousel.innerHTML=`<article class="latest-empty"><div class="latest-empty-copy"><div class="latest-empty-kicker"><svg viewBox="0 0 24 24"><path d="M12 7v10M7 12h10" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span>No analysis yet</span></div><h4>Your next improvement starts here</h4><p>Upload a short swing video and mark the key positions frame by frame.</p></div></article>`;return}latestCarousel.innerHTML=sessions.map((s,i)=>`<article class="latest-card"><div class="latest-card-media"><img src="${s.thumb||Object.values(s.captures||{})[0]||'assets/analysis-thumb.webp'}" alt=""><button class="latest-card-play" data-open-session="${s.id}" aria-label="Open ${esc(s.title||'Swing session')}"><svg viewBox="0 0 24 24"><path d="M8.5 6.6c0-.8.86-1.3 1.56-.89l8.02 4.78c.68.41.68 1.39 0 1.8l-8.02 4.78a1.03 1.03 0 0 1-1.56-.89V6.6Z"/></svg></button></div><div class="latest-card-body"><div class="latest-card-kicker"><svg viewBox="0 0 24 24"><path d="M7 2.8a1 1 0 0 1 1 1V5h8V3.8a1 1 0 1 1 2 0V5h.8A2.2 2.2 0 0 1 21 7.2V18a2.2 2.2 0 0 1-2.2 2.2H5.2A2.2 2.2 0 0 1 3 18V7.2A2.2 2.2 0 0 1 5.2 5H6Z"/></svg><span>${i?'Saved':'Latest'} · ${shortDate(s.date)}</span></div><h4>${esc(s.title||'Swing session')}</h4><p>${phaseCount(s)}/5 phases marked</p><button type="button" class="session-continue" data-open-session="${s.id}">Continue ${uiIcon('chevron')}</button><div class="latest-card-metrics"><span class="latest-chip">Mode<strong>${s.analyses?.length?'Local':'Manual'}</strong></span><span class="latest-chip">Report<strong>${phaseCount(s)?'Ready':'Draft'}</strong></span></div></div></article>`).join('')}
+function renderHome(){
+ renderStreak();if(!latestCarousel)return;
+ const sessions=[state.current,...state.history.filter(s=>!state.current||s.id!==state.current.id)].filter(Boolean).slice(0,6);
+ if(!sessions.length){latestCarousel.innerHTML='<article class="latest-empty"><div class="latest-empty-copy"><h4>Your next improvement starts here</h4><p>Upload a swing to start your first review.</p></div></article>';return}
+ latestCarousel.innerHTML=sessions.map((s,i)=>{
+  const capture=s.captures?.Impact||s.captures?.Top||Object.values(s.captures||{})[0],preview=capture||s.thumb;
+  const media=preview?'<img src="'+esc(preview)+'" alt="Swing video preview">':'<div class="preview-placeholder">'+uiIcon('video')+'<span>'+(previewAttempted.has(s.id)&&!previewRequests.has(s.id)?'Preview unavailable':'Preparing preview')+'</span></div>';
+  return '<article class="latest-card"><div class="latest-card-media">'+media+'<button class="latest-card-play" data-open-session="'+s.id+'" aria-label="Open '+esc(s.title||'Swing session')+'">'+uiIcon('play')+'</button></div><div class="latest-card-body"><div class="latest-card-kicker"><span>'+(i?'Saved':'Latest')+' · '+shortDate(s.date)+'</span></div><h4>'+esc(s.title||'Swing session')+'</h4><p>'+phaseCount(s)+'/5 phases marked</p><button type="button" class="session-continue" data-open-session="'+s.id+'">Continue '+uiIcon('chevron')+'</button></div></article>';
+ }).join('');
+ for(const s of sessions)if(!Object.keys(s.captures||{}).length)requestPreview(s,state.current?.id===s.id?state.videoFile:undefined);
+}
+
 function renderReviewHeader(){if(!state.current||!reviewTitleInput)return;reviewTitleInput.value=state.current.title||'Swing session';document.getElementById('reviewSubtitle').textContent=state.current.fileName||'Manual phase review'}
 
 document.getElementById('historySearch')?.addEventListener('input',renderHistory);
@@ -372,6 +403,35 @@ document.addEventListener('keydown',e=>{if(modal.hidden)return;if(e.key==='Escap
 document.addEventListener('swinglab:editor-closed',updateSessionStatus);
 document.addEventListener('swinglab:editor-opened',hideToast);
 document.addEventListener('keydown',e=>{const overlay=document.querySelector('.fullscreen-editor:not([hidden]),.compare-viewer:not([hidden])');if(!overlay||!modal.hidden)return;if(e.key==='Escape'&&overlay.id==='compareViewer'){e.preventDefault();closeCompareViewer()}if(e.key==='Tab'){const controls=Array.from(overlay.querySelectorAll('button,input,select,textarea')).filter(el=>!el.disabled&&el.getClientRects().length);const first=controls[0],last=controls[controls.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}});
+
+
+/* A small UI bridge keeps the fullscreen workspace on the same session/actions. */
+window.SwingLabReview={
+ snapshot(){
+  const session=state.current,run=session?.analyses?.at(-1);
+  return {id:session?.id,title:session?.title||'Review swing',view:session?.view||'DTL',
+   step:state.engineBusy?'analyzing':state.reviewStep,busy:state.engineBusy||state.storageBusy,
+   captureBusy:!!captureJob,playable:!!state.videoFile&&video.readyState>=2,
+   online:state.engineOnline,phases:{...session?.phases},markMode:state.markMode,
+   impact:session?.impactReference?.time,progress:analysisProgress&&!analysisProgress.hidden?analysisProgressText?.textContent||'':'',
+   saved:session&&!hasUnsavedChanges(),runStatus:run?.status};
+ },
+ async command(action,time,phase){
+  if(!state.current)return;
+  if(action==='cancel'){cancelAnalysis();window.SwingLabEditor?.refresh?.();return}
+  if(state.engineBusy||state.storageBusy)return;
+  if(action==='mark')markImpactReference(time);
+  if(action==='skip'){clearImpactReference();state.reviewStep='analyze'}
+  if(action==='edit-impact')state.reviewStep='impact';
+  if(action==='analyze')await analyzeWithEngine(state.videoFile);
+  if(action==='save')await saveSession();
+  if(action==='phase'&&phases.includes(phase))setPhase(phase,time);
+  if(action==='mark-mode'){state.markMode=!state.markMode;renderPhases()}
+  if(action==='captures')await capturePhases();
+  if(action==='report'){window.SwingLabEditor?.close?.();go('results')}
+  updateSessionStatus();window.SwingLabEditor?.refresh?.();
+ }
+};
 
 function renderAll(){renderReviewHeader();renderHome();renderPhases();renderCaptures();renderHistory();renderCompare();renderProfile();updateSessionStatus()}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
@@ -434,25 +494,64 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     S.shapes=JSON.parse(JSON.stringify(event.detail.drawings||[]));
     resetDrawState();
   });
-  window.SwingLabEditor={getDrawings:()=>JSON.parse(JSON.stringify(S.shapes))};
+  window.SwingLabEditor={getDrawings:()=>JSON.parse(JSON.stringify(S.shapes)),open:openEditor,close:closeEditor,refresh:refreshReview,
+ release(){closeEditor();fsVideo.removeAttribute('src');fsVideo.load()}};
+  let phaseSignature='';
+  function refreshReview(){
+    const r=window.SwingLabReview?.snapshot?.();if(!r)return;
+    const title=document.getElementById('fsReviewTitle'),status=document.getElementById('fsSessionStatus');
+    if(title)title.textContent=r.title;
+    if(status)status.textContent=r.busy?(r.step==='analyzing'?'Analyzing on device':'Saving on device'):r.saved?'Saved on device':'Unsaved changes';
+    const labels={
+     impact:['1 / 3 · IMPACT','Where is impact?','Pause at contact, or the first frame of ball departure. You can skip this step.','Mark this frame','mark','Skip for now','skip'],
+     analyze:['2 / 3 · ANALYZE',Number.isFinite(r.impact)?'Start from your impact':'Ready to analyze',Number.isFinite(r.impact)?'Impact at '+r.impact.toFixed(3)+' s. The other phases will be proposed on this device.':'No impact reference selected. Let the local marker find the swing.','Analyze swing','analyze','Back to impact','edit-impact'],
+     analyzing:['2 / 3 · ANALYZE','Analyzing your swing',r.progress,'Analyzing…','analyze','Cancel','cancel'],
+     review:['3 / 3 · REVIEW','Check your key phases','Tap a phase to inspect it. Open tools below to draw, correct or capture.','Save review','save','Analyze again','analyze']
+    };
+    const text=[...(labels[r.step]||labels.impact)];if(r.step==='analyze'&&r.progress&&(r.runStatus&&r.runStatus!=='needs-review'||/unavailable|cancelled|timed out/i.test(r.progress)))text[2]=r.progress;
+    for(const [id,value]of [['fsFlowStep',text[0]],['fsFlowTitle',text[1]],['fsFlowHint',text[2]]]){const el=document.getElementById(id);if(el)el.textContent=value}
+    for(const [id,label,command]of [['fsFlowPrimary',text[3],text[4]],['fsFlowSecondary',text[5],text[6]]]){
+      const b=document.getElementById(id);if(!b)continue;b.textContent=label;b.dataset.reviewCommand=command;
+      b.disabled=command==='cancel'?false:r.busy||!r.playable||(command==='analyze'&&!r.online)||(command==='mark'&&(!fsVideo.currentTime||fsVideo.currentTime>=fsVideo.duration));
+    }
+    editor.querySelectorAll('[data-review-command="save"]').forEach(b=>{b.disabled=r.busy||!r.playable});
+    const options=document.getElementById('fsReviewOptions');if(options){options.hidden=r.step!=='review';if(options.hidden)options.open=false}
+    const mode=document.getElementById('fsMarkMode');if(mode)mode.textContent=r.markMode?'Done correcting':'Correct phases';
+    const signature=JSON.stringify([r.id,r.phases,r.markMode,r.busy,r.step]);
+    if(signature!==phaseSignature){
+      phaseSignature=signature;const strip=document.getElementById('fsPhaseStrip');if(strip){
+       strip.replaceChildren();
+       for(const name of ['Address','Takeaway','Top','Impact','Finish']){
+        const t=r.phases[name],button=document.createElement('button'),label=document.createElement('strong'),time=document.createElement('span');
+        label.textContent=name;time.textContent=Number.isFinite(t)?t.toFixed(2)+' s':'—';button.type='button';button.dataset.reviewPhase=name;
+        button.disabled=r.busy||r.step!=='review';button.classList.toggle('is-marked',Number.isFinite(t));button.classList.toggle('is-mark-mode',r.markMode);
+        button.append(label,time);strip.append(button);
+       }
+      }
+    }
+  }
+
 
   function openEditor(){
     if(!mainVideo.src) return;
-    S.view=document.getElementById('profileView')?.value||'DTL';
+    S.view=window.SwingLabReview?.snapshot?.().view||'DTL';
+    S.fitSafe=true;editor.classList.add('is-fit-safe');
     updateLabels();
     editor.hidden = false;
     document.getElementById('appView').inert=true;
     document.dispatchEvent(new CustomEvent('swinglab:editor-opened'));
     editor.querySelector('[data-fs-action="close"]')?.focus();
-    const newSource = fsVideo.src !== mainVideo.src;
-    if(newSource) {
-      fsVideo.src = mainVideo.src;
-      resetDrawState();
-    }
-    try { fsVideo.currentTime = mainVideo.currentTime || 0; } catch(e) {}
+    const source=mainVideo.src,newSource=fsVideo.src!==source,target=Math.max(.001,Math.min(mainVideo.duration-.001,mainVideo.currentTime>.05?mainVideo.currentTime:Math.min(.15,mainVideo.duration*.05)));
+    const ready=()=>{
+      if(editor.hidden||mainVideo.src!==source||fsVideo.src!==source)return;
+      SwingLabVideo.seek(fsVideo,target).then(()=>{resizeCanvas();draw();updateTime()}).catch(()=>setStatus('Use the timeline to choose a frame'));
+    };
+    if(newSource){fsVideo.addEventListener('loadeddata',ready,{once:true});fsVideo.src=source;resetDrawState()}
+    else if(fsVideo.readyState>=2)ready();
+    else fsVideo.addEventListener('loadeddata',ready,{once:true});
     fsVideo.playbackRate = S.speeds[S.speedIndex];
     mainVideo.pause();
-    setTimeout(()=>{ resizeCanvas(); draw(); updateTime(); }, 80);
+    refreshReview();setTimeout(()=>{ resizeCanvas(); draw(); updateTime(); }, 80);
   }
   function closeEditor(){
     try { mainVideo.currentTime = fsVideo.currentTime || 0; } catch(e) {}
@@ -735,6 +834,22 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
   }
 
   document.addEventListener('click', e=>{
+    const phase=e.target.closest('[data-review-phase]');
+    if(phase&&editor.contains(phase)){
+      e.preventDefault();e.stopPropagation();fsVideo.pause();const r=window.SwingLabReview?.snapshot?.(),name=phase.dataset.reviewPhase,t=r?.phases[name];
+      if(r?.markMode||!Number.isFinite(t))window.SwingLabReview?.command?.('phase',fsVideo.currentTime,name);
+      else{fsVideo.currentTime=t;mainVideo.currentTime=t;updateTime()}
+      return;
+    }
+    const review=e.target.closest('[data-review-command]');
+    if(review&&editor.contains(review)){
+      e.preventDefault();e.stopPropagation();const action=review.dataset.reviewCommand;
+      if(['mark','analyze','captures','edit-impact'].includes(action))fsVideo.pause();
+      if(action==='edit-impact')setDrawEnabled(false);
+      window.SwingLabReview?.command?.(action,fsVideo.currentTime).catch(()=>setStatus('The review action could not finish. Try again.'));
+      return;
+    }
+
     const tool = e.target.closest('[data-tool]');
     if(tool){
       S.tool=tool.dataset.tool;
@@ -823,7 +938,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     fsTime.textContent=`${Math.floor(t/60)}:${(t%60).toFixed(2).padStart(5,'0')}${frame==null?'':' · source frame '+frame}`;
     for(const [action,label]of [['back-frame',frame==null?'−20ms':'−1f'],['forward-frame',frame==null?'+20ms':'+1f']]){const button=editor.querySelector(`[data-fs-action="${action}"]`);if(button)button.textContent=label}
     if(fsTimeline && fsVideo.duration) fsTimeline.value=Math.round((t/fsVideo.duration)*1000);
-    updateLabels();
+    updateLabels();refreshReview();
   }
   function updateLabels(){
     document.getElementById('fsGuidesState').textContent=S.guides?'ON':'OFF';

@@ -100,3 +100,85 @@ h1,h2,h3,h4,p{margin:0}h1,h2,h3,h4{color:var(--text);line-height:1.2;letter-spac
 .impact-reference-actions button{min-height:44px}
 .impact-reference.needs-impact{border-color:#b8ae65;background:#fbfaf0}
 #impactReferenceStatus{font-variant-numeric:tabular-nums}
+
+/* v37: a guided video workspace, with the original fullscreen tools. */
+#screenHome .topbar{min-height:76px;margin-bottom:18px}
+#screenHome .topbar-logo{width:min(290px,65vw);max-width:calc(100% - 94px);height:auto;max-height:84px}
+#screenHome .home-fit{transform:none;width:100%}
+.welcome-block[hidden]{display:none!important}
+#screenHome .new-analysis-btn{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:138px;width:100%;padding:20px 22px;margin:0 0 22px;overflow:hidden;border:1px solid #cadfc6;border-radius:24px;background:linear-gradient(125deg,#e5f3d8 0%,#f2f8ed 60%,#d5e8ce 100%);color:#153f2e;box-shadow:0 8px 24px #123e3010;text-align:left}
+.new-analysis-copy{position:relative;z-index:1;display:grid;gap:6px;flex:1}
+.new-analysis-copy small{font-size:9px;letter-spacing:.15em;font-weight:800;color:#577b5a}
+.new-analysis-copy strong{font-size:24px;line-height:1.15;font-weight:750;letter-spacing:-.7px}
+.new-analysis-copy em{font-size:12px;font-style:normal;font-weight:500;color:#53735e}
+.club-art{width:138px;height:104px;flex:0 0 138px;fill:none}
+.analysis-arrow{position:absolute;right:15px;top:12px;font-size:20px;color:#386747}
+.bottom-nav .nav-center{overflow:visible;color:#19583c;font-weight:800}
+.bottom-nav .nav-center .center-ring{width:62px;height:62px;min-width:62px;transform:translateY(-14px);background:#1c573e;border:4px solid #f4f8f2;border-radius:50%;box-shadow:0 5px 14px #0a3d3033;display:grid;place-items:center;margin-bottom:-12px}
+.bottom-nav .nav-center .golf-ball-icon{width:49px;height:49px;fill:none;stroke:none}
+.bottom-nav .nav-center>span:last-child{font-weight:800;font-size:10px}
+.latest-card{grid-template-columns:116px minmax(0,1fr);min-height:158px}
+.latest-card-media{position:relative;display:block;height:154px;min-height:154px;overflow:hidden;border-radius:14px;background:#e3ece3}
+.latest-card-media img{position:absolute;inset:0;width:100%;height:100%;min-height:0;object-fit:contain;background:#dde8dc}
+.latest-card-media .preview-placeholder{display:grid;place-content:center;text-align:center;gap:8px;height:100%;padding:12px;color:#6b8170;font-size:10px}
+.preview-placeholder svg{width:30px;height:30px;margin:auto;fill:none;stroke:currentColor;stroke-width:1.5}
+.latest-card-play{z-index:1}
+.review-layout{grid-template-columns:minmax(0,1fr)!important}
+#screenReview .review-intro{padding:0;margin-bottom:0}
+.review-guide-entry{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#64806d}
+.review-guide-entry button{min-height:42px;font-size:12px}
+#screenReview .analysis-video-wrap{height:min(62dvh,620px);background:#0c1c13}
+#screenReview .analysis-video-wrap video{object-fit:contain}
+.review-advanced{grid-column:1/-1;border:1px solid var(--line);border-radius:15px;padding:12px 16px;background:white}
+.review-advanced summary{cursor:pointer;font-size:13px;font-weight:650}
+.review-advanced .local-marking-card{border:0;padding:14px 0;margin:0}
+.fullscreen-editor{display:flex;flex-direction:column;position:fixed;inset:0;height:100dvh;width:100%;background:#08170f}
+.fullscreen-editor .fs-stage{position:relative;flex:1;min-height:150px;height:auto;overflow:hidden}
+.fullscreen-editor .fs-stage video,.fullscreen-editor.is-fit-safe .fs-stage video,.fullscreen-editor #fullscreenCanvas,.fullscreen-editor.is-fit-safe #fullscreenCanvas{inset:0;width:100%;height:100%;max-height:none;object-fit:contain}
+.fullscreen-editor:not(.is-fit-safe) .fs-stage video{object-fit:cover}
+.fs-review-heading{display:grid;gap:2px;min-width:0;flex:1;text-align:center;color:#fff}
+.fs-review-heading strong{font-size:14px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.fs-review-heading span{font-size:10px;opacity:.7}
+.fullscreen-editor .fs-topbar{top:calc(env(safe-area-inset-top,0px) + 10px);left:12px;right:12px;gap:10px;align-items:center}
+.fs-review-bottom{flex:0 0 auto;max-height:48dvh;overflow-y:auto;padding:9px 16px calc(10px + env(safe-area-inset-bottom,0px));background:#f9fcf7;color:#173c30;border-top:1px solid #d8e4d7}
+.fullscreen-editor .fs-player{position:static;inset:auto;width:100%;max-width:none;padding:0;margin:0;transform:none;background:transparent;border:0;box-shadow:none;color:#264735}
+.fullscreen-editor .fs-player-row{display:flex;align-items:center;justify-content:space-between}
+.fullscreen-editor .fs-player-row>strong{font-size:10px;font-weight:500}
+.fullscreen-editor .fs-buttons{display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:8px}
+.fullscreen-editor .fs-buttons button{min-height:38px;padding:7px;border:1px solid #d9e4d7;background:#edf3e9;color:#254a32;border-radius:10px}
+.fullscreen-editor .fs-buttons #fsPlayButton{background:#1b563d;color:white}
+.fullscreen-editor .speed-chip{background:#e5efde;color:#244a33;border:0;font-size:11px;min-height:30px;padding:5px 10px}
+.fs-phase-strip{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin-top:10px}
+.fs-phase-strip button{display:grid;gap:3px;min-width:0;min-height:44px;padding:6px 2px;border:1px solid #dbe5d5;border-radius:9px;background:white;color:#244a32;text-align:center}
+.fs-phase-strip strong{font-size:9px;font-weight:650}
+.fs-phase-strip span{font-size:9px;color:#7c927e}
+.fs-phase-strip .is-marked{background:#e6f0dc;border-color:#bed4ad}
+.fs-phase-strip .is-mark-mode{outline:1px dashed #548a43}
+.fs-review-flow{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0 7px}
+.flow-kicker{color:#6b856b;font-size:8px;letter-spacing:.13em;font-weight:800}
+.fs-review-flow h3{font-size:17px;line-height:1.2;margin:4px 0}
+.fs-review-flow p{font-size:11px;line-height:1.4;color:#6c806d;margin:0;max-width:340px}
+.fs-flow-actions{display:grid;gap:5px;flex-shrink:0}
+.fs-flow-actions button{min-height:38px;font-size:11px;padding:8px 14px;white-space:nowrap}
+.fs-review-options{border-top:1px solid #e0e8dc;padding-top:6px;margin-top:3px}
+.fs-review-options summary{cursor:pointer;font-size:10px;font-weight:650;color:#668166;min-height:28px;display:flex;align-items:center}
+.fullscreen-editor .fs-side{position:static;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;margin:5px 0;width:100%}
+.fullscreen-editor .fs-side button{width:auto;min-height:46px;padding:5px 2px;border:1px solid #d9e4d5;background:#edf3e8;border-radius:8px;color:#325536}
+.fullscreen-editor .fs-side button small{font-size:8px}
+.fullscreen-editor .fs-side button strong{font-size:10px;color:#325536}
+.fs-extra-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.fs-extra-actions button{font-size:10px;min-height:38px;padding:7px 10px;border:1px solid #cfdfc7;border-radius:8px;background:white;color:#385d3c}
+.fs-review-options .fs-status{display:flex;gap:8px;color:#69826b;background:none;max-width:none;padding:5px 0;font-size:10px}
+.fs-review-options .fs-status strong{font-size:10px}
+.fs-review-options .fs-status span{font-size:10px}
+@media(min-width:800px){.fs-review-bottom{padding-left:max(24px,calc((100vw - 850px)/2));padding-right:max(24px,calc((100vw - 850px)/2));max-height:42dvh}.fs-review-flow{padding:14px 0}.fs-review-flow h3{font-size:19px}.fullscreen-editor .fs-stage{min-height:240px}}
+@media(max-width:360px){#screenHome .topbar-logo{width:220px;max-width:calc(100% - 86px)}#screenHome .new-analysis-btn{min-height:124px;padding:18px}.club-art{width:100px;flex-basis:100px}.new-analysis-copy strong{font-size:22px}.new-analysis-copy em{font-size:10px}.latest-card{grid-template-columns:92px minmax(0,1fr)}.fs-review-bottom{padding-left:10px;padding-right:10px}.fs-review-flow{gap:8px}.fs-review-flow h3{font-size:15px}.fs-flow-actions button{padding:7px 10px}.fs-review-flow p{font-size:10px}}
+@media(orientation:landscape) and (max-height:500px){.fs-review-bottom{max-height:44dvh}.fs-review-flow{padding:8px 0}.fs-phase-strip{margin-top:5px}.fs-review-flow p{max-width:none}.fullscreen-editor .fs-stage{min-height:140px}}
+
+/* Explicit contrast overrides for the older dark editor theme. */
+.fullscreen-editor .fs-review-flow h3{color:#173c30}
+.fullscreen-editor .fs-player #fsTime{color:#53705a}
+.fullscreen-editor .fs-flow-actions button.primary-solid{background:#1d583c;color:#fff;border:1px solid #1d583c;box-shadow:none}
+.fullscreen-editor .fs-flow-actions button.primary-outline{background:white;color:#285d3c;border-color:#c6d8c2}
+.fullscreen-editor .fs-side button small{color:#58745c}
+.fullscreen-editor .fs-review-options .fs-status strong,.fullscreen-editor .fs-review-options .fs-status span{color:#647e66}

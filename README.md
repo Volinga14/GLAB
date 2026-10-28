@@ -125,3 +125,28 @@ this environment failed with access-denied/profile errors before page creation.
 Browser rendering, actual phone latency and independent phase accuracy remain
 unverified. Historical 17-clip development measurements are exploratory, not
 production accuracy claims for this integration. Release v0.36.0 includes this integration.
+
+## Guided video review - v0.37.0
+
+The review opens the full-viewport workspace by default. New clips default to
+down-the-line view. The guide asks for impact first, offers Skip for now, then
+proceeds to local analysis and phase review. Phase buttons sit below playback.
+Existing playback speed, source-frame stepping, drawing, guides, view overlays,
+undo, deletion, shape tools, frame export, captures and report actions remain
+available. Analysis ranges and reviewed references are in collapsed advanced
+options. The learning/phase-improvement panel is hidden from the review screen.
+
+Home has a larger wordmark without the greeting, a club illustration for the main
+new-analysis action, and a golf-ball action in the navigation. Latest previews
+prefer actual captures; otherwise they are generated from the stored source video.
+Uniform black opening frames are retried. Thumbnail repairs update only that
+field in IndexedDB and preserve saved notes and phase corrections.
+
+Validation: 79 logic/regression checks passed. A real-video Chrome integration
+check passed for default fullscreen, impact marking, skipping, anchored inference,
+phase layout, original tools, saving and source thumbnails. Screenshots were
+inspected at 390x844 and 1654x800. Test resources were fulfilled directly from the
+workspace because the environment denies localhost network access; service workers
+were blocked in that browser test. Offline resource behavior is covered by logic
+tests. Real phone camera behavior and device latency are not established by these
+desktop checks. Run npm run test:guided for the focused browser check.

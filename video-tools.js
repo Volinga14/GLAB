@@ -59,5 +59,23 @@
       if(!finite(video.duration)||video.duration<=0||video.duration>60)throw Error('Choose a video of up to 60 seconds with a readable duration.');return {video,close};
     }catch(e){close();throw e}
   }
-  return {timing,normalizeTiming,frameIndex,step,window,seek,open};
+  async function thumbnail(file,{time,signal}={}){
+    const resource=await open(file,signal);
+    try{
+      const video=resource.video,canvas=document.createElement('canvas'),scale=Math.min(1,480/Math.max(video.videoWidth,video.videoHeight));
+      if(!video.videoWidth||!video.videoHeight)throw Error('Video dimensions unavailable.');
+      canvas.width=Math.max(1,Math.round(video.videoWidth*scale));canvas.height=Math.max(1,Math.round(video.videoHeight*scale));const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      const candidates=[Number.isFinite(time)?time:video.duration*.5,video.duration*.3,video.duration*.7];
+      for(const t of candidates){
+        await seek(video,Math.max(.001,Math.min(video.duration-.001,t)),signal);if(signal?.aborted)throw abort();
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;let sum=0,sum2=0,count=0;
+        for(let i=0;i<pixels.length;i+=64){const light=(pixels[i]+pixels[i+1]+pixels[i+2])/3;sum+=light;sum2+=light*light;count++}
+        if(count&&sum/count<8&&sum2/count-(sum/count)**2<3)continue;
+        return canvas.toDataURL('image/jpeg',.8);
+      }
+      return null;
+    }finally{resource.close()}
+  }
+  return {timing,normalizeTiming,frameIndex,step,window,seek,open,thumbnail};
 });

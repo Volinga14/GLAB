@@ -110,6 +110,15 @@
         tx.objectStore('videos').get(id).onsuccess = event => done(event.target.result || null);
       });
     }
+    function updateThumbnail(id,thumb,expectedSha){
+      if(!image(thumb))return Promise.reject(new Error('Invalid thumbnail.'));
+      return transaction(['sessions'],'readwrite',tx=>{
+        const sessions=tx.objectStore('sessions');sessions.get(id).onsuccess=e=>{
+          const current=e.target.result;if(!current||expectedSha&&current.videoSha256!==expectedSha)return;
+          sessions.put({...current,thumb},id);
+        };
+      });
+    }
     function remove(id) {
       return transaction(['sessions', 'videos', 'feedback'], 'readwrite', tx => {
         for (const name of ['sessions', 'videos', 'feedback']) tx.objectStore(name).delete(id);
@@ -125,7 +134,7 @@
     function importReferences(records){
       return transaction(['meta'],'readwrite',(tx,done)=>{const meta=tx.objectStore('meta');meta.get('reviewed-references-v1').onsuccess=e=>{try{const merged=SwingLabReferences.merge(e.target.result||[],records);meta.put(merged,'reviewed-references-v1');done(merged)}catch{tx.abort()}}});
     }
-    return { init, list, save, video, remove, clear, feedback, references, importReferences };
+    return { init, list, save, video, remove, clear, feedback, references, importReferences, updateThumbnail };
   }
   globalThis.SwingLabStorage = { createStore, normalize, clone };
 })();

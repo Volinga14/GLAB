@@ -191,3 +191,24 @@ test('clearing all phases also removes the analysis impact reference',async()=>{
  a.handle('mark-impact-reference');a.handle('clear-phases');assert.equal(a.state.current.impactReference,null);
  assert.equal(a.state.current.phases.Impact,undefined);
 });
+
+test('guided review asks for impact, allows skipping and proceeds to phase review',async()=>{
+ const {a,c}=await environment();await a.loadVideoFile(file('guided'));
+ assert.equal(a.state.current.view,'DTL');assert.equal(c.SwingLabReview.snapshot().step,'impact');
+ await c.SwingLabReview.command('skip');assert.equal(c.SwingLabReview.snapshot().step,'analyze');
+ assert.equal(a.state.current.impactReference,null);
+ let received;c.SwingLabLocal.analyze=async(f,o)=>{received=o;return localResult({address:.5,takeaway:1,top:2,impact:2.5,finish:4})};
+ await c.SwingLabReview.command('analyze');
+ assert.equal(received.impactAnchor,undefined);assert.equal(c.SwingLabReview.snapshot().step,'review');
+ assert.equal(c.SwingLabReview.snapshot().phases.Impact,2.5);
+});
+test('fullscreen impact and correction commands use their visible frame rather than the stale inline player',async()=>{
+ const {a,c,nodes}=await environment();await a.loadVideoFile(file('guided'));
+ nodes.get('swingVideo').currentTime=.2;
+ await c.SwingLabReview.command('mark',3.45);
+ assert.equal(a.state.current.impactReference.time,3.45);assert.equal(c.SwingLabReview.snapshot().step,'analyze');
+ await c.SwingLabReview.command('phase',2.1,'Top');assert.equal(a.state.current.phases.Top,2.1);
+ await c.SwingLabReview.command('edit-impact');assert.equal(c.SwingLabReview.snapshot().step,'impact');
+ a.state.engineBusy=true;await c.SwingLabReview.command('skip');assert.equal(a.state.current.impactReference.time,3.45);
+ a.state.engineBusy=false;
+});
