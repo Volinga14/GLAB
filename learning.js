@@ -7,13 +7,26 @@
     return {start:raw.start,end:raw.end,method:String(raw.method||'').slice(0,100),alternatives:Array.isArray(raw.alternatives)?raw.alternatives.filter(w=>validTime(w?.start,duration)&&validTime(w?.end,duration)&&w.end>w.start).slice(0,30).map(w=>({start:w.start,end:w.end})):[],warnings:Array.isArray(raw.warnings)?raw.warnings.slice(0,10).map(s=>String(s).slice(0,500)):[]};
   }
   function canReplaceProposal(session,previousRun,phase){
+    if(phase==='Impact'&&Number.isFinite(session.impactReference?.time))return false;
     if(session.referenceReview||reviewMatches(session)||negativeMatches(session))return false;
     if(session.phases?.[phase]==null)return true;
     return !!previousRun&&session.phases[phase]===previousRun.phases?.[phase]&&!(session.corrections||[]).some(c=>c.phase===phase&&!c.supersededBy&&c.analysisId===previousRun.runId);
   }
+  function impactEvidence(raw,duration){
+    if(!raw||!['user-impact','audio-model-agreement','model-only','disagreement','no-model-impact'].includes(raw.source)||!['needs-review','needs-impact'].includes(raw.status))return null;
+    const result={source:raw.source,status:raw.status,note:String(raw.note||'').slice(0,1000)};
+    for(const key of ['anchor','modelImpact','audioImpact'])if(validTime(raw[key],duration))result[key]=raw[key];
+    if(finite(raw.distance)&&raw.distance>=0)result.distance=raw.distance;
+    return result;
+  }
+  function impactReference(raw,duration,videoSha256){
+    if(!raw||raw.source!=='user-impact'||!finite(duration)||!validTime(raw.time,duration)||raw.time<=0||raw.time>=duration||!stamp(raw.updatedAt))return null;
+    if(raw.videoSha256!=null&&(!hash(raw.videoSha256)||raw.videoSha256!==videoSha256))return null;
+    return {time:raw.time,source:'user-impact',updatedAt:raw.updatedAt,videoSha256:hash(raw.videoSha256)?raw.videoSha256:null};
+  }
   function analysis(raw,duration){
     if(!raw||!safeId(raw.runId)||!hash(raw.videoSha256)||raw.protocol!==PROTOCOL||!stamp(raw.createdAt)||!['needs-review','needs-segment','rejected','unsupported-view'].includes(raw.status))return null;
-    return {runId:raw.runId,modelId:String(raw.modelId||'').slice(0,100),protocol:PROTOCOL,checkpointSha256:hash(raw.checkpointSha256)?raw.checkpointSha256:null,modelFiles:Object.fromEntries(['encoder','temporal'].map(key=>[key,{sha256:hash(raw.modelFiles?.[key]?.sha256)?raw.modelFiles[key].sha256:null}])),videoSha256:raw.videoSha256,createdAt:raw.createdAt,status:raw.status,view:raw.view==='FO'?'FO':'DTL',phases:marks(raw.phases,duration),sampleTimes:Array.isArray(raw.sampleTimes)?raw.sampleTimes.filter(t=>validTime(t,duration)).slice(0,200):[],window:analysisWindow(raw.window,duration),preprocessing:String(raw.preprocessing||'').slice(0,100),sampling:{frames:48,imageSize:144},note:String(raw.note||'').slice(0,2000)};
+    return {runId:raw.runId,modelId:String(raw.modelId||'').slice(0,100),protocol:PROTOCOL,checkpointSha256:hash(raw.checkpointSha256)?raw.checkpointSha256:null,modelFiles:Object.fromEntries(['encoder','temporal'].map(key=>[key,{sha256:hash(raw.modelFiles?.[key]?.sha256)?raw.modelFiles[key].sha256:null}])),videoSha256:raw.videoSha256,createdAt:raw.createdAt,status:raw.status,view:raw.view==='FO'?'FO':'DTL',phases:marks(raw.phases,duration),sampleTimes:Array.isArray(raw.sampleTimes)?raw.sampleTimes.filter(t=>validTime(t,duration)).slice(0,200):[],window:analysisWindow(raw.window,duration),preprocessing:String(raw.preprocessing||'').slice(0,100),sampling:{frames:48,imageSize:144},impactEvidence:impactEvidence(raw.impactEvidence,duration),initialPhases:marks(raw.initialPhases,duration),audioCandidates:Array.isArray(raw.audioCandidates)?raw.audioCandidates.filter(c=>validTime(c?.time,duration)).slice(0,3).map(c=>({time:c.time,source:'audio-transient',status:'needs-review'})):[],note:String(raw.note||'').slice(0,2000)};
   }
   function correction(raw,duration){
     if(!raw||!safeId(raw.id)||!PHASES.includes(raw.phase)||!stamp(raw.createdAt)||![raw.previousTime,raw.proposedTime,raw.correctedTime].every(t=>t==null||validTime(t,duration)))return null;
@@ -25,6 +38,7 @@
   function normalize(value){
     const duration=finite(value.duration)&&value.duration>0&&value.duration<=600?value.duration:null;
     const result={duration,videoSha256:hash(value.videoSha256)?value.videoSha256:null,view:value.view==='FO'?'FO':'DTL',timing:V.normalizeTiming(value.timing,duration||0),feedbackEnabled:value.feedbackEnabled!==false,analyses:duration&&Array.isArray(value.analyses)?value.analyses.map(r=>analysis(r,duration)).filter(Boolean):[],corrections:duration&&Array.isArray(value.corrections)?value.corrections.map(r=>correction(r,duration)).filter(Boolean):[],review:{status:'draft'}};
+    result.impactReference=impactReference(value.impactReference,duration,result.videoSha256);
     if(reviewMatches({...value,...result,review:value.review}))result.review={status:'reviewed',protocol:PROTOCOL,videoSha256:result.videoSha256,confirmedAt:value.review.confirmedAt,reviewer:value.review.reviewer.slice(0,100),phases:marks(value.review.phases,duration)};
     if(negativeMatches({...value,...result,review:value.review}))result.review={status:'negative',protocol:PROTOCOL,videoSha256:result.videoSha256,confirmedAt:value.review.confirmedAt,reviewer:value.review.reviewer.slice(0,100),phases:{}};
     if(R){result.referenceReview=R.snapshot(value.referenceReview,result.videoSha256);result.referenceHistory=Array.isArray(value.referenceHistory)?value.referenceHistory.map(r=>R.snapshot(r,result.videoSha256)).filter(Boolean):[]}

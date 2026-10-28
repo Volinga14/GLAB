@@ -1,5 +1,5 @@
 'use strict';
-importScripts('./core.js','./vendor/ort.wasm.min.js');
+importScripts('./core.js','./hybrid-core.js','./vendor/ort.wasm.min.js');
 let encoder,temporal;
 async function initialize(){
   if(encoder&&temporal)return;
@@ -25,7 +25,7 @@ self.onmessage=async event=>{
       self.postMessage({id,type:'parity',encoder:Array.from(a.features.data),temporal:Array.from(b.logits.data)});return;
     }
     if(type!=='analyze')throw Error('Operación desconocida.');
-    const {frames,times,window}=event.data;
+    const {frames,times,window,anchor}=event.data;
     if(!Array.isArray(frames)||frames.length!==48||times.length!==48||frames.some(frame=>frame.byteLength!==144*144*4))throw Error('Muestreo incompatible.');
     await initialize();const started=performance.now(),features=new Float32Array(48*96),plane=144*144,mean=[.485,.456,.406],std=[.229,.224,.225];
     for(let frame=0;frame<48;frame++){
@@ -35,7 +35,7 @@ self.onmessage=async event=>{
       self.postMessage({id,type:'progress',value:frame+1});
     }
     const output=await temporal.run({features:new ort.Tensor('float32',features,[1,48,96])});
-    const phases=MarkingCore.decode(output.logits.data,times);
+    const phases=Number.isFinite(anchor)?SwingLabHybrid.decode(output.logits.data,times,anchor):MarkingCore.decode(output.logits.data,times);
     self.postMessage({id,type:'result',result:{id:'local-mark-v0.1',status:'needs-review',phases,window,inferenceMs:performance.now()-started,sampling:{frames:48,imageSize:144},note:'Mismos pesos que GLAB. Propuestas no calibradas: confirmar cada fase.'}});
   }catch(error){self.postMessage({id,type:'error',message:String(error.message||error)})}
 };

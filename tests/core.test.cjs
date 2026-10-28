@@ -17,7 +17,7 @@ async function environment(history=[]){
     return {value:'',textContent:'',innerHTML:'',hidden:true,src:'',duration:10,currentTime:0,paused:true,readyState:2,seeking:false,
       dataset:{},style:{setProperty(){}},classList:{toggle(){},add(){},remove(){},contains(){return false}},
       addEventListener(n,f){(listeners[n]||=[]).push(f)},removeEventListener(){},
-      querySelector(){return null},querySelectorAll(){return []},pause(){this.paused=true},play(){return Promise.resolve()},
+      querySelector(){return null},querySelectorAll(){return []},closest(){return null},pause(){this.paused=true},play(){return Promise.resolve()},
       removeAttribute(n){this[n]=''},setAttribute(n,v){this[n]=v},replaceChildren(){},append(){},focus(){},load(){},click(){},getContext(){return {drawImage(){}}},
       dispatchEvent(event){for(const f of listeners[event.type]||[])f(event)},toDataURL(){return 'data:image/jpeg;base64,TkVX'}};
   }
@@ -170,6 +170,24 @@ test('both HTML pages request exactly the scripts and styles that are precached'
   const sw=serviceWorker();const shell=vm.runInContext('Array.from(SHELL_URLS)',sw.context);
   for(const name of ['index.html','dashboard.html']){
     const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/<script src="([^\"]+)"|<link rel="stylesheet" href="([^\"]+)"/g)].map(m=>m[1]||m[2]);
-    assert.equal(urls.length,10);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
+    assert.equal(urls.length,12);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
   }
+});
+
+test('impact reference is one action, reaches the engine, survives save and does not leak into a new video',async()=>{
+ const {a,c,nodes,records}=await environment();await a.loadVideoFile(file('A'));
+ nodes.get('swingVideo').currentTime=3.21;a.handle('mark-impact-reference');
+ assert.equal(a.state.current.impactReference.time,3.21);assert.equal(a.state.current.phases.Impact,3.21);
+ let options;c.SwingLabLocal.analyze=async(f,o)=>{options=o;return {...localResult({address:1,takeaway:2,top:3,impact:3.21,finish:4}),impactEvidence:{anchor:3.21,source:'user-impact',status:'needs-review'}}};
+ await a.analyzeWithEngine(a.state.videoFile);assert.equal(options.impactAnchor,3.21);
+ assert.equal(a.state.current.phases.Impact,3.21);assert.equal(a.state.current.analyses[0].impactEvidence.source,'user-impact');assert.match(nodes.get('phaseAudit').innerHTML,/your reference/);
+ await a.saveSession();const id=a.state.current.id;assert.equal(records.get(id).impactReference.time,3.21);
+ await a.loadVideoFile(file('B'));assert.equal(a.state.current.impactReference,undefined);
+ await a.openSession(id);assert.equal(a.state.current.impactReference.time,3.21);
+ a.handle('clear-impact-reference');assert.equal(a.state.current.impactReference,null);assert.equal(a.state.current.phases.Impact,3.21);
+});
+test('clearing all phases also removes the analysis impact reference',async()=>{
+ const {a,nodes}=await environment();await a.loadVideoFile(file('A'));nodes.get('swingVideo').currentTime=2;
+ a.handle('mark-impact-reference');a.handle('clear-phases');assert.equal(a.state.current.impactReference,null);
+ assert.equal(a.state.current.phases.Impact,undefined);
 });

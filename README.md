@@ -90,3 +90,38 @@ The local model uses frozen GLAB weights and still needs visual review. The moti
 Validated for this version: 54 logic checks, 13 session/browser checks, 10 integrated learning checks, nine marking-lab checks, four segment checks and four reference-library checks. Responsive frontend checks also passed. Tests include real on-device inference, three-source-frame corrections, model proposal preservation, correction-image rollback, local ZIP export, source timing, reference identity/version conflicts, uncertainty persistence and offline use. They do not establish phase accuracy or real-phone performance.
 
 Remaining work includes independent phase/validity evaluation, candidate training, Android/iOS camera and installation testing, numerical swing analysis, validated coaching guidance, full session backup and optional synchronization.
+
+## Local hybrid marking - v0.36.0
+
+The main app now uses local-mark-v0.4: motion-compensated swing selection, the
+existing frozen GLAB model, and optional local audio evidence. No weights were
+retrained. The optional impact helper sits below video playback: pause at visible
+contact or ball departure, choose **Mark impact here**, then **Analyze from my
+impact**. Source-frame buttons become available when readable presentation
+timestamps are available; unknown timing retains labelled 20 ms steps.
+
+A supplied impact is held fixed by the ordered temporal decoder. The original
+video, manual reference and its provenance, baseline proposals, audio candidates
+and resulting run are saved locally. Clearing the reference retains existing phase
+marks; clearing all phases or declaring no swing removes it. Manual/confirmed
+phase corrections are not overwritten by reruns. The phase audit labels supplied
+impact as a reference and omits its model-error delta.
+
+Without a manual reference, the marker considers the audio candidate nearest its
+visual impact. Agreement within 250 ms permits anchored refinement; unavailable
+audio, disagreement or refinement failure keeps the visual proposal and offers
+manual help. Agreement is not calibrated confidence. Static rejection, view
+restrictions, explicit segment bounds and cancellation remain active. Processing
+stays local and the required hybrid assets are included in both offline caches.
+
+Verification: 73 logic/regression checks passed, including pipeline orchestration,
+manual impact, failure/cancellation paths, provenance normalization, reference
+locking, and save/reload behavior in the app harness. Frozen-model hashes and
+Python/JavaScript decoder parity also pass. The end-to-end browser test is
+available as npm run test:impact or node tests/impact-browser.cjs. When Playwright
+is installed outside this repository, set PLAYWRIGHT_MODULE_PATH. Edge launch in
+this environment failed with access-denied/profile errors before page creation.
+
+Browser rendering, actual phone latency and independent phase accuracy remain
+unverified. Historical 17-clip development measurements are exploratory, not
+production accuracy claims for this integration. Release v0.36.0 includes this integration.
