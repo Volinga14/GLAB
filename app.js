@@ -27,7 +27,7 @@ function updateSessionStatus(){
 const installButtons=()=>document.querySelectorAll('[data-action="install-app"]');
 const phases=['Address','Takeaway','Top','Impact','Finish'];
 const store=SwingLabStorage.createStore(), clone=SwingLabStorage.clone;
-let state={current:null,videoUrl:null,videoFile:null,history:[],markMode:false,compareSelected:[],comparePhase:'',compareLayer:'overlay',compareAdjust:{},engineOnline:!!window.SwingLabLocal,engineBusy:false,reviewStep:'impact',installPrompt:null,storageReady:false,storageBusy:false};
+let state={current:null,videoUrl:null,videoFile:null,history:[],markMode:false,compareSelected:[],comparePhase:'',compareLayer:'overlay',compareAdjust:{},engineOnline:!!window.SwingLabLocal,engineBusy:false,reviewStep:'manual',engineGuide:false,installPrompt:null,storageReady:false,storageBusy:false};
 let mediaRevision=0, phaseRevision=0, engineJob=null, captureJob=null, draftBaseline=null;
 let referenceCatalog=[],guidedPending=false;
 const ready=store.init().then(async({history,warning})=>{state.history=history;state.storageReady=true;renderAll();if(warning)modalMsg('History recovered.',warning);try{referenceCatalog=await store.references?.()||[];updateReferenceUI()}catch{showToast('The reference library could not be read. Your sessions are available.')}}).catch(()=>modalMsg('Storage unavailable.','Your browser could not open local storage. Sessions cannot be saved. Existing data has not been removed.'));
@@ -146,7 +146,7 @@ function releaseMedia(){
   document.getElementById('videoEmpty').style.display='';document.getElementById('videoEmpty').textContent='No video loaded';timeline.value=0;
   document.getElementById('currentTimeLabel').textContent='0.00s';document.getElementById('durationLabel').textContent='0.00s';
 }
-function attachMedia(file){state.reviewStep=state.current?.analyses?.length||phaseCount(state.current)>1?'review':state.current?.impactReference?'analyze':'impact';guidedPending=true;state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none';document.getElementById('useAnalysisRange').checked=false;document.getElementById('analysisRangeStart').value='0';document.getElementById('analysisRangeEnd').value=''}
+function attachMedia(file){state.reviewStep='manual';state.engineGuide=false;guidedPending=true;state.videoFile=file;state.videoUrl=URL.createObjectURL(file);video.src=state.videoUrl;document.getElementById('videoEmpty').style.display='none';document.getElementById('useAnalysisRange').checked=false;document.getElementById('analysisRangeStart').value='0';document.getElementById('analysisRangeEnd').value=''}
 function setPhase(phase,time){
   if(!state.current||!state.videoFile||state.storageBusy||!phases.includes(phase)||!Number.isFinite(time))return;
   const limit=Number.isFinite(video.duration)?video.duration:time;state.current.duration=limit;
@@ -199,7 +199,7 @@ async function analyzeWithEngine(file){
     const estimated=Object.fromEntries(phases.filter(p=>Number.isFinite(result.phases?.[p.toLowerCase()])).map(p=>[p,result.phases[p.toLowerCase()]]));
     Object.assign(job.session,{duration:result.duration,videoSha256:result.videoSha256,timing:result.timing});if(job.session.impactReference)job.session.impactReference.videoSha256=result.videoSha256;
     const run={runId:crypto.randomUUID(),modelId:result.id,protocol:SwingLabLearning.PROTOCOL,checkpointSha256:result.checkpointSha256,modelFiles:result.modelFiles,videoSha256:result.videoSha256,createdAt:result.createdAt,status:result.status,view:job.session.view||'DTL',phases:clone(estimated),window:result.window,sampleTimes:result.sampleTimes||[],preprocessing:result.preprocessing,impactEvidence:result.impactEvidence,audioCandidates:result.audioCandidates,initialPhases:Object.fromEntries(phases.filter(p=>Number.isFinite(result.initialPhases?.[p.toLowerCase()])).map(p=>[p,result.initialPhases[p.toLowerCase()]])),note:result.note};
-    job.session.analyses=job.session.analyses||[];job.session.analyses.push(run);if(result.status==='needs-review')state.reviewStep='review';
+    job.session.analyses=job.session.analyses||[];job.session.analyses.push(run);if(result.status==='needs-review'){state.reviewStep='review';state.engineGuide=false;}
     if(result.status!=='needs-review'){if(phaseRevision===job.marks&&replaceable.length){for(const p of replaceable){delete job.session.phases[p];delete job.session.captures[p]}phaseRevision++;renderPhases();renderCaptures()}setAnalysisProgress(true,result.status==='rejected'?'No usable swing information was found. You can mark phases manually.':result.note);return}
     if(phaseRevision!==job.marks){setAnalysisProgress(true,'Local analysis finished. Your manual phase changes were kept; the proposals are available below.');return}
     // Replace untouched automatic marks; retain edited and confirmed references.
@@ -410,7 +410,7 @@ window.SwingLabReview={
  snapshot(){
   const session=state.current,run=session?.analyses?.at(-1);
   return {id:session?.id,title:session?.title||'Review swing',view:session?.view||'DTL',
-   step:state.engineBusy?'analyzing':state.reviewStep,busy:state.engineBusy||state.storageBusy,
+   step:state.engineBusy?'analyzing':state.reviewStep,engineGuide:state.engineGuide,busy:state.engineBusy||state.storageBusy,
    captureBusy:!!captureJob,playable:!!state.videoFile&&video.readyState>=2,
    online:state.engineOnline,phases:{...session?.phases},markMode:state.markMode,
    impact:session?.impactReference?.time,progress:analysisProgress&&!analysisProgress.hidden?analysisProgressText?.textContent||'':'',
@@ -418,11 +418,13 @@ window.SwingLabReview={
  },
  async command(action,time,phase){
   if(!state.current)return;
+  if(action==='manual'){if(state.engineBusy)cancelAnalysis();state.engineGuide=false;state.reviewStep='manual';updateSessionStatus();return}
   if(action==='cancel'){cancelAnalysis();window.SwingLabEditor?.refresh?.();return}
   if(state.engineBusy||state.storageBusy)return;
+  if(action==='engine'){state.engineGuide=true;state.reviewStep=Number.isFinite(state.current.impactReference?.time)?'analyze':'impact'}
   if(action==='mark')markImpactReference(time);
   if(action==='skip'){clearImpactReference();state.reviewStep='analyze'}
-  if(action==='edit-impact')state.reviewStep='impact';
+  if(action==='edit-impact'){state.reviewStep='impact';state.engineGuide=true;}
   if(action==='analyze')await analyzeWithEngine(state.videoFile);
   if(action==='save')await saveSession();
   if(action==='phase'&&phases.includes(phase))setPhase(phase,time);
@@ -515,8 +517,11 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
       b.disabled=command==='cancel'?false:r.busy||!r.playable||(command==='analyze'&&!r.online)||(command==='mark'&&(!fsVideo.currentTime||fsVideo.currentTime>=fsVideo.duration));
     }
     editor.querySelectorAll('[data-review-command="save"]').forEach(b=>{b.disabled=r.busy||!r.playable});
-    const options=document.getElementById('fsReviewOptions');if(options){options.hidden=r.step!=='review';if(options.hidden)options.open=false}
-    const mode=document.getElementById('fsMarkMode');if(mode)mode.textContent=r.markMode?'Done correcting':'Correct phases';
+    const guide=document.getElementById('fsEngineGuide');if(guide)guide.hidden=!r.engineGuide||r.step==='review';
+    const trigger=document.getElementById('fsEngineTrigger');if(trigger){trigger.disabled=r.busy||!r.playable||!r.online;trigger.textContent=r.runStatus==='needs-review'?'Run Swing Lab again':'Analyze with Swing Lab'}
+    const options=document.getElementById('fsReviewOptions');if(options)options.hidden=false;
+    const player=editor.querySelector('.fs-player');if(player)editor.style.setProperty('--fs-controls-height',player.offsetHeight+'px');
+    const mode=document.getElementById('fsMarkMode');if(mode)mode.textContent=r.markMode?'Done marking':'Mark phases';
     const signature=JSON.stringify([r.id,r.phases,r.markMode,r.busy,r.step]);
     if(signature!==phaseSignature){
       phaseSignature=signature;const strip=document.getElementById('fsPhaseStrip');if(strip){
@@ -524,7 +529,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
        for(const name of ['Address','Takeaway','Top','Impact','Finish']){
         const t=r.phases[name],button=document.createElement('button'),label=document.createElement('strong'),time=document.createElement('span');
         label.textContent=name;time.textContent=Number.isFinite(t)?t.toFixed(2)+' s':'—';button.type='button';button.dataset.reviewPhase=name;
-        button.disabled=r.busy||r.step!=='review';button.classList.toggle('is-marked',Number.isFinite(t));button.classList.toggle('is-mark-mode',r.markMode);
+        button.disabled=r.busy||!['manual','review'].includes(r.step);button.classList.toggle('is-marked',Number.isFinite(t));button.classList.toggle('is-mark-mode',r.markMode);
         button.append(label,time);strip.append(button);
        }
       }
@@ -535,7 +540,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
   function openEditor(){
     if(!mainVideo.src) return;
     S.view=window.SwingLabReview?.snapshot?.().view||'DTL';
-    S.fitSafe=true;editor.classList.add('is-fit-safe');
+    S.fitSafe=false;editor.classList.remove('is-fit-safe');
     updateLabels();
     editor.hidden = false;
     document.getElementById('appView').inert=true;
@@ -846,6 +851,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
       e.preventDefault();e.stopPropagation();const action=review.dataset.reviewCommand;
       if(['mark','analyze','captures','edit-impact'].includes(action))fsVideo.pause();
       if(action==='edit-impact')setDrawEnabled(false);
+      if(['engine','edit-impact','manual','save','captures','report'].includes(action)){const more=document.getElementById('fsReviewOptions');if(more)more.open=false}
       window.SwingLabReview?.command?.(action,fsVideo.currentTime).catch(()=>setStatus('The review action could not finish. Try again.'));
       return;
     }

@@ -150,3 +150,21 @@ workspace because the environment denies localhost network access; service worke
 were blocked in that browser test. Offline resource behavior is covered by logic
 tests. Real phone camera behavior and device latency are not established by these
 desktop checks. Run npm run test:guided for the focused browser check.
+
+## Manual fullscreen workspace - v0.38.0
+
+New reviews start in the version-36 style fullscreen video workspace. The original
+drawing, view/guide, undo/delete, playback and source-frame controls are available
+immediately. Phases are integrated into the translucent playback overlay and can
+be marked manually without invoking the model.
+
+Analyze with Swing Lab opens the optional engine guide. The user can provide or
+skip impact, run the local model, then return to the workspace with its phase
+proposals. Successful analysis closes the guide automatically. Closing the guide
+returns to manual review and cancels an in-progress model request. Existing
+annotations and manually edited phases are preserved.
+
+Validation: 80 logic/regression checks passed. The real-video Chrome check covers
+manual drawing before model invocation, explicit guide activation, optional
+impact/skip, anchored inference, annotation preservation, phases within the video,
+save and source thumbnails. Mobile and desktop screenshots were inspected.

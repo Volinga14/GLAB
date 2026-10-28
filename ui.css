@@ -182,3 +182,48 @@ h1,h2,h3,h4,p{margin:0}h1,h2,h3,h4{color:var(--text);line-height:1.2;letter-spac
 .fullscreen-editor .fs-flow-actions button.primary-outline{background:white;color:#285d3c;border-color:#c6d8c2}
 .fullscreen-editor .fs-side button small{color:#58745c}
 .fullscreen-editor .fs-review-options .fs-status strong,.fullscreen-editor .fs-review-options .fs-status span{color:#647e66}
+
+/* v38: version-36 fullscreen workspace, with an optional engine guide. */
+.fullscreen-editor{display:block;background:#030a06}
+.fullscreen-editor .fs-stage{position:relative;width:100%;height:100%;min-height:0;overflow:hidden}
+.fullscreen-editor .fs-stage video,.fullscreen-editor:not(.is-fit-safe) .fs-stage video,.fullscreen-editor #fullscreenCanvas{inset:0;width:100%;height:100%;object-fit:contain}
+.fullscreen-editor.is-fit-safe .fs-stage video,.fullscreen-editor.is-fit-safe #fullscreenCanvas{inset:66px 0 auto;height:calc(100% - var(--fs-controls-height,210px) - 94px);width:100%;object-fit:contain}
+.fullscreen-editor .fs-review-heading{background:#07150dc4;border:1px solid #ffffff17;border-radius:12px;padding:6px 12px;max-width:240px;margin:auto;text-shadow:0 1px 3px #0008}
+.fullscreen-editor .fs-player{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(calc(100% - 24px),740px);max-width:none;transform:translateX(-50%);padding:11px 12px;background:#07180ed9;backdrop-filter:blur(14px);border:1px solid #b8d6b128;border-radius:18px;box-shadow:0 10px 35px #0004;color:#eff9ed;z-index:20}
+.fs-workspace-actions{display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.fs-workspace-actions button{border-radius:9px;min-height:37px;font-size:10px;padding:8px 10px}
+.fs-engine-trigger{flex:1;background:#a3e96c;border:1px solid #bbe98b;color:#163c24;font-weight:750}
+.fs-mark-toggle{background:#ffffff10;border:1px solid #ffffff26;color:#edf7e9}
+.fullscreen-editor .fs-player #fsTime{color:#d9e8d4;font-size:10px}
+.fullscreen-editor .fs-player .speed-chip{background:#ffffff12;border:1px solid #ffffff20;color:#e2efdb}
+.fullscreen-editor .fs-buttons button{background:#ffffff0e;border-color:#ffffff21;color:#d7e8d0}
+.fullscreen-editor .fs-buttons #fsPlayButton{background:#abed77;color:#173c24;border-color:#b7ec8b}
+.fullscreen-editor .fs-phase-strip{margin-top:8px;gap:5px}
+.fullscreen-editor .fs-phase-strip button{min-height:42px;background:#ffffff08;border-color:#ffffff22;color:#eaf5e5;padding:5px 2px}
+.fullscreen-editor .fs-phase-strip button span{color:#b5cbb0}
+.fullscreen-editor .fs-phase-strip button.is-marked{background:#95df6324;border-color:#a5e58266;color:#d9ffbf}
+.fullscreen-editor .fs-phase-strip button.is-mark-mode{outline:1px dashed #b0eb7e}
+.fullscreen-editor .fs-side{position:absolute;right:12px;top:80px;width:52px;display:grid;grid-template-columns:1fr;gap:7px;margin:0;z-index:22}
+.fullscreen-editor .fs-side button{width:52px;min-height:50px;background:#07180dbd;border:1px solid #cbe3c52b;border-radius:12px;padding:7px 3px;color:#e3f2da;backdrop-filter:blur(8px)}
+.fullscreen-editor .fs-side button small{font-size:9px;color:#bfd4b8}
+.fullscreen-editor .fs-side button strong{color:#e8f9dd;font-size:11px}
+.fullscreen-editor .fs-review-flow{position:absolute;bottom:calc(var(--fs-controls-height,210px) + 26px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:min(calc(100% - 24px),650px);padding:16px;background:#0c2818f2;border:1px solid #bddcb54a;border-radius:16px;color:#f1faed;box-shadow:0 8px 30px #0004;z-index:24}
+.fullscreen-editor .fs-review-flow .flow-kicker{color:#add29d}
+.fullscreen-editor .fs-review-flow h3{color:#effbea;font-size:17px}
+.fullscreen-editor .fs-review-flow p{color:#c1d8b8;font-size:11px}
+.fullscreen-editor .fs-flow-actions{padding-right:4px}
+.fullscreen-editor .fs-flow-actions button.primary-solid{background:#a3e96c;border-color:#b9ec8a;color:#163c24}
+.fullscreen-editor .fs-flow-actions button.primary-outline{background:#ffffff08;border-color:#b1d2a448;color:#e0f5d4}
+.fs-guide-close{position:absolute;right:5px;top:1px;width:24px;height:24px;background:none;border:0;color:#bfd9b4;font-size:20px;padding:0}
+.fullscreen-editor .fs-review-options{position:relative;margin:0;padding:0;border:0;flex:0 0 auto}
+.fullscreen-editor .fs-review-options summary{min-height:37px;margin:0;padding:8px 9px;border:1px solid #ffffff26;border-radius:9px;color:#e5f2df;font-size:10px;background:#ffffff0b}
+.fs-more-panel{position:absolute;bottom:calc(100% + 14px);right:0;width:230px;max-height:42dvh;overflow:auto;padding:12px;background:#0b2116f7;border:1px solid #bfdab34d;border-radius:14px;box-shadow:0 12px 36px #0005}
+.fullscreen-editor .fs-more-panel .fs-extra-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.fullscreen-editor .fs-more-panel button{background:#ffffff0a;border:1px solid #b5d1aa44;color:#e5f6db}
+.fullscreen-editor .fs-review-options .fs-status strong,.fullscreen-editor .fs-review-options .fs-status span{color:#c2d8b8}
+.fullscreen-editor .tool-panel{bottom:calc(var(--fs-controls-height,210px) + 28px);max-height:calc(100dvh - var(--fs-controls-height,210px) - 115px);overflow:auto}
+.fullscreen-editor .tool-dock{bottom:calc(var(--fs-controls-height,210px) + 28px)}
+@media(max-width:360px){.fullscreen-editor .fs-player{padding:9px;bottom:calc(8px + env(safe-area-inset-bottom,0px))}.fs-workspace-actions{gap:5px}.fs-workspace-actions button{padding:7px;font-size:9px}.fullscreen-editor .fs-review-flow{padding:13px;gap:9px}.fullscreen-editor .fs-review-flow h3{font-size:15px}.fullscreen-editor .fs-side{right:9px;top:76px;width:46px}.fullscreen-editor .fs-side button{width:46px;min-height:45px}.fullscreen-editor .fs-review-heading{max-width:180px}}
+@media(orientation:landscape) and (max-height:500px){.fullscreen-editor .fs-side{top:65px;grid-template-columns:repeat(3,46px);width:auto;right:12px}.fullscreen-editor .fs-player{width:min(calc(100% - 24px),560px);bottom:8px;padding:8px}.fs-workspace-actions{margin-bottom:4px}.fullscreen-editor .fs-phase-strip{margin-top:4px}.fullscreen-editor .fs-review-flow{max-width:460px;padding:10px;bottom:calc(var(--fs-controls-height,195px) + 16px)}}
+
+.fullscreen-editor .fs-workspace-actions .fs-engine-trigger{color:#163c24;font-size:11px;font-weight:750}

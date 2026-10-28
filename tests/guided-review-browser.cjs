@@ -27,9 +27,20 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   await page.screenshot({path:path.join(artifacts,'guided-home.png'),fullPage:true});
   await page.setInputFiles('#videoInput',path.join(source,'user-2.mp4'));
   await page.waitForFunction(()=>!document.getElementById('fullscreenEditor').hidden&&document.getElementById('fullscreenVideo').readyState>=2&&document.getElementById('fullscreenVideo').currentTime>.05);
+  assert.equal(await page.locator('#fsEngineGuide').isVisible(),false);
+  assert.equal(await page.locator('#fsEngineTrigger').evaluate(e=>getComputedStyle(e).color),'rgb(22, 60, 36)');
+  assert.equal(await page.locator('.fs-side [data-fs-action="toggle-tools"]').isVisible(),true);
+  assert.equal(await page.locator('#fsPhaseStrip button').first().isEnabled(),true);
+  await page.screenshot({path:path.join(artifacts,'workspace-manual.png'),fullPage:true});
+  await page.locator('.fs-side [data-fs-action="toggle-tools"]').click();
+  await page.locator('[data-tool="line"]').click();await page.locator('[data-fs-action="collapse-tools"]').click();
+  await page.mouse.move(100,180);await page.mouse.down();await page.mouse.move(190,280,{steps:8});await page.mouse.up();
+  assert.equal(await page.evaluate(()=>SwingLabEditor.getDrawings().length),1);
+  await page.locator('.fs-side [data-fs-action="toggle-tools"]').click();
+  await page.click('#fsEngineTrigger');
   assert.match(await page.locator('#fsFlowTitle').textContent(),/impact/i);
   assert.equal(await page.evaluate(()=>testing.state.current.view),'DTL');
-  assert.equal(await page.locator('#fsFlowTitle').evaluate(e=>getComputedStyle(e).color),'rgb(23, 60, 48)');
+  assert.equal(await page.locator('#fsFlowTitle').evaluate(e=>getComputedStyle(e).color),'rgb(239, 251, 234)');
   await page.screenshot({path:path.join(artifacts,'guided-impact.png'),fullPage:true});
   await page.evaluate(()=>SwingLabVideo.seek(document.getElementById('fullscreenVideo'),3.87));await page.click('#fsFlowPrimary');
   assert.equal(await page.evaluate(()=>SwingLabReview.snapshot().step),'analyze');
@@ -38,8 +49,9 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   assert.equal(await page.evaluate(()=>testing.state.current.phases.Impact),anchor);
   assert.equal(await page.locator('#fsPhaseStrip button').count(),5);
   const stage=await page.locator('.fs-stage').boundingBox(),strip=await page.locator('#fsPhaseStrip').boundingBox();
-  assert.ok(strip.y>=stage.y+stage.height-1);
-  await page.locator('#fsReviewOptions summary').click();assert.equal(await page.locator('#fsReviewOptions [data-fs-action="toggle-tools"]').isVisible(),true);
+  assert.ok(strip.y>stage.y&&strip.y+strip.height<=stage.y+stage.height);assert.equal(await page.locator('#fsEngineGuide').isVisible(),false);
+  assert.equal(await page.evaluate(()=>SwingLabEditor.getDrawings().length),1);
+  assert.equal(await page.locator('.fs-side [data-fs-action="toggle-tools"]').isVisible(),true);
   await page.screenshot({path:path.join(artifacts,'guided-phases.png'),fullPage:true});
   await page.setViewportSize({width:1654,height:800});await page.screenshot({path:path.join(artifacts,'guided-desktop.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:390,height:844});
@@ -49,10 +61,10 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   await page.screenshot({path:path.join(artifacts,'guided-preview.png'),fullPage:true});
   await page.setInputFiles('#videoInput',path.join(source,'user-1.mp4'));
   await page.waitForFunction(()=>!document.getElementById('fullscreenEditor').hidden&&document.getElementById('fullscreenVideo').readyState>=2&&document.getElementById('fullscreenVideo').currentTime>.05);
-  await page.click('#fsFlowSecondary');assert.equal(await page.evaluate(()=>SwingLabReview.snapshot().step),'analyze');
+  await page.click('#fsEngineTrigger');await page.click('#fsFlowSecondary');assert.equal(await page.evaluate(()=>SwingLabReview.snapshot().step),'analyze');
   assert.equal(await page.evaluate(()=>testing.state.current.impactReference),null);
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
   assert.deepEqual(errors,[]);assert.deepEqual(uploads,[]);
-  console.log('PASS fullscreen default, impact/skip flow, real anchored inference, phases below video, tools, save and actual source previews');
+  console.log('PASS manual-first workspace, original tools/drawing, optional impact/skip engine guide, anchored inference, integrated phases, save and source previews');
  }finally{await context?.close();server.closeAllConnections();server.close()}
 })().catch(e=>{console.error(e.message);process.exitCode=1});

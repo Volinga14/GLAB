@@ -194,7 +194,7 @@ test('clearing all phases also removes the analysis impact reference',async()=>{
 
 test('guided review asks for impact, allows skipping and proceeds to phase review',async()=>{
  const {a,c}=await environment();await a.loadVideoFile(file('guided'));
- assert.equal(a.state.current.view,'DTL');assert.equal(c.SwingLabReview.snapshot().step,'impact');
+ assert.equal(a.state.current.view,'DTL');assert.equal(c.SwingLabReview.snapshot().step,'manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().step,'impact');
  await c.SwingLabReview.command('skip');assert.equal(c.SwingLabReview.snapshot().step,'analyze');
  assert.equal(a.state.current.impactReference,null);
  let received;c.SwingLabLocal.analyze=async(f,o)=>{received=o;return localResult({address:.5,takeaway:1,top:2,impact:2.5,finish:4})};
@@ -211,4 +211,15 @@ test('fullscreen impact and correction commands use their visible frame rather t
  await c.SwingLabReview.command('edit-impact');assert.equal(c.SwingLabReview.snapshot().step,'impact');
  a.state.engineBusy=true;await c.SwingLabReview.command('skip');assert.equal(a.state.current.impactReference.time,3.45);
  a.state.engineBusy=false;
+});
+
+test('manual fullscreen review works without invoking the motor and keeps marks when opening its guide',async()=>{
+ const {a,c}=await environment();await a.loadVideoFile(file('manual'));
+ let calls=0;c.SwingLabLocal.analyze=async()=>{calls++;throw Error('not requested')};
+ await c.SwingLabReview.command('phase',1.7,'Top');
+ assert.equal(a.state.current.phases.Top,1.7);assert.equal(calls,0);
+ assert.equal(c.SwingLabReview.snapshot().step,'manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);
+ await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().engineGuide,true);
+ await c.SwingLabReview.command('manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);
+ assert.equal(a.state.current.phases.Top,1.7);assert.equal(calls,0);
 });
