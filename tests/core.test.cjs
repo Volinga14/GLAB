@@ -15,7 +15,8 @@ async function environment(history=[]){
   function element(){
     const listeners={};
     return {value:'',textContent:'',innerHTML:'',hidden:true,src:'',duration:10,currentTime:0,paused:true,readyState:2,seeking:false,
-      dataset:{},style:{setProperty(){}},classList:{toggle(){},add(){},remove(){},contains(){return false}},
+      videoWidth:640,videoHeight:480,dataset:{},style:{setProperty(){}},classList:{toggle(){},add(){},remove(){},contains(){return false}},
+      get currentTime(){return this._time||0},set currentTime(t){this._time=t;queueMicrotask(()=>{for(const f of listeners.seeked||[])f({type:'seeked'})})},
       addEventListener(n,f){(listeners[n]||=[]).push(f)},removeEventListener(){},
       querySelector(){return null},querySelectorAll(){return []},closest(){return null},pause(){this.paused=true},play(){return Promise.resolve()},
       removeAttribute(n){this[n]=''},setAttribute(n,v){this[n]=v},replaceChildren(){},append(){},focus(){},load(){},click(){},getContext(){return {drawImage(){}}},
@@ -30,7 +31,7 @@ async function environment(history=[]){
   const context={document,location:{search:'',protocol:'file:'},navigator:{userAgent:'test'},console,
     localStorage:{getItem:k=>saved.get(k)||null,setItem:(k,v)=>saved.set(k,v),removeItem:k=>saved.delete(k)},
     URLSearchParams,URL,crypto:{randomUUID:()=>String(Math.random()).replace('.','-')},
-    setTimeout,clearTimeout,addEventListener(){},matchMedia:()=>({matches:false}),AbortController,DOMException,
+    setTimeout,clearTimeout,queueMicrotask,addEventListener(){},matchMedia:()=>({matches:false}),AbortController,DOMException,
     FormData:class{append(){}},confirm:()=>true,prompt:()=>null,CustomEvent:class{constructor(type,opts){this.type=type;this.detail=opts?.detail}},innerHeight:800};
   context.URL=class extends URL{static createObjectURL(f){return 'blob:'+f.name}static revokeObjectURL(){}};
   context.window=context;vm.createContext(context);
@@ -222,4 +223,15 @@ test('manual fullscreen review works without invoking the motor and keeps marks 
  await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().engineGuide,true);
  await c.SwingLabReview.command('manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);
  assert.equal(a.state.current.phases.Top,1.7);assert.equal(calls,0);
+});
+
+test('report saves phase captures and capture annotations survive reopening without the source video',async()=>{
+ const {a,c,records,videos}=await environment();await a.loadVideoFile(file('capture'));
+ await c.SwingLabReview.command('phase',2,'Impact');await c.SwingLabReview.command('report');const id=a.state.current.id;
+ assert.match(records.get(id).captures.Impact,/^data:image/);
+ const line={id:1,type:'line',color:'#99f032',width:5,x1:.1,y1:.2,x2:.4,y2:.5};
+ c.SwingLabReview.saveCapture('Impact',[line]);await a.saveSession();assert.equal(records.get(id).captureDrawings.Impact.length,1);
+ videos.delete(id);await a.loadVideoFile(file('other'));await a.openSession(id);
+ assert.equal(a.state.videoFile,null);assert.equal(c.SwingLabReview.capture('Impact').drawings.length,1);
+ assert.equal(a.state.current.drawings.length,0);
 });

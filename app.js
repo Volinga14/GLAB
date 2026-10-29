@@ -97,7 +97,7 @@ function seekVideo(t,signal){return new Promise((resolve,reject)=>{
   video.addEventListener('seeked',done,{once:true});video.addEventListener('error',failed,{once:true});signal.addEventListener('abort',aborted,{once:true});
   try{video.currentTime=target}catch(error){finish(error)}
 })}
-async function capturePhases(){
+async function capturePhases(navigate=true){
   if(!state.current||!state.videoFile||video.readyState<2||!Number.isFinite(video.duration))return modalMsg('No video ready.','Load a playable video first.');
   if(captureJob)return;
   const marked=Object.entries(state.current.phases);if(!marked.length)return modalMsg('No phases marked.','Tap Mark, then choose phases at the current frame.');
@@ -107,14 +107,16 @@ async function capturePhases(){
   const isCurrent=()=>state.current===session&&mediaRevision===revision&&phaseRevision===marks&&!controller.signal.aborted;
   try{
     for(const[p,t]of marked){await seekVideo(t,controller.signal);if(!isCurrent())return;ctx.drawImage(video,0,0,canvas.width,canvas.height);captures[p]=canvas.toDataURL('image/jpeg',.82)}
-    await seekVideo(old,controller.signal);if(!isCurrent())return;session.captures=captures;go('results');
+    await seekVideo(old,controller.signal);if(!isCurrent())return;session.captures=captures;renderCaptures();if(navigate)go('results');return true;
   }catch(error){if(isCurrent())modalMsg('Captures could not be created.','Wait for the video to load and try again. Existing captures have been kept.')}
   finally{if(captureJob===controller)captureJob=null;updateSessionStatus()}
 }
-function renderCaptures(){if(!state.current){capturesGrid.innerHTML=emptyState('No review yet','Choose a video to start reviewing your swing.');return}const entries=Object.entries(state.current.captures||{});capturesGrid.innerHTML=entries.length?entries.map(([phase,img])=>`<article class="capture-card"><img src="${img}" alt="${phase} phase capture"><strong>${phase}</strong></article>`).join(''):emptyState('Add your key moments','Mark a phase in the review, then create captures to include its image here.','Back to review','review')}
+function renderCaptures(){if(!state.current){capturesGrid.innerHTML=emptyState('No review yet','Choose a video to start reviewing your swing.');return}const entries=Object.entries(state.current.captures||{});capturesGrid.innerHTML=entries.length?entries.map(([phase,img])=>`<article class="capture-card"><img src="${img}" alt="${phase} phase capture"><strong>${phase}</strong><button type="button" class="tiny-btn" data-open-capture="${phase}">Analyze image</button></article>`).join(''):emptyState('Add your key moments','Mark a phase in the review, then create captures to include its image here.','Back to review','review')}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-open-capture]');if(b)window.SwingLabEditor?.openCapture?.(b.dataset.openCapture)});
 async function saveSession(){
   await ready;if(!state.current){modalMsg('No session to save.','Upload a video first.');return false}
-  if(!state.storageReady)return storageFailure();if(state.storageBusy||state.engineBusy)return false;
+  if(!state.storageReady)return storageFailure();if(state.storageBusy||state.engineBusy||captureJob)return false;
+  if(state.videoFile&&Object.keys(state.current.phases).some(p=>!state.current.captures?.[p])&&!(await capturePhases(false)))return false;
   state.current.title=reviewTitleInput.value.trim()||'Swing session';state.current.notes=notesInput.value;state.current.drawings=window.SwingLabEditor?.getDrawings()||state.current.drawings||[];
   const summary=SwingLabStorage.normalize(state.current),file=state.videoFile;let savedSuccessfully=false;state.storageBusy=true;updateSessionStatus();
   try{
@@ -154,7 +156,7 @@ function setPhase(phase,time){
   if(phase==='Impact'&&target>0&&target<limit)state.current.impactReference={time:target,source:'user-impact',updatedAt:new Date().toISOString(),videoSha256:state.current.videoSha256||null};
   if(state.current.phases[phase]===target){if(phase==='Impact')phaseRevision++;updateSessionStatus();return}
   SwingLabLearning.record(state.current,phase,state.current.phases[phase],target,profile.name);
-  phaseRevision++;state.current.phases[phase]=target;delete state.current.captures[phase];renderPhases();renderCaptures();updateSessionStatus();
+  phaseRevision++;state.current.phases[phase]=target;delete state.current.captures[phase];if(state.current.captureDrawings)delete state.current.captureDrawings[phase];renderPhases();renderCaptures();updateSessionStatus();
 }
 function markImpactReference(time=video.currentTime){
   if(!state.current||!state.videoFile||state.engineBusy||state.storageBusy||video.readyState<2)return;
@@ -407,11 +409,13 @@ document.addEventListener('keydown',e=>{const overlay=document.querySelector('.f
 
 /* A small UI bridge keeps the fullscreen workspace on the same session/actions. */
 window.SwingLabReview={
+ capture(phase){return {src:state.current?.captures?.[phase],drawings:clone(state.current?.captureDrawings?.[phase]||[]) };},
+ saveCapture(phase,drawings){if(state.current?.captures?.[phase]){state.current.captureDrawings=state.current.captureDrawings||{};state.current.captureDrawings[phase]=clone(drawings);}},
  snapshot(){
   const session=state.current,run=session?.analyses?.at(-1);
   return {id:session?.id,title:session?.title||'Review swing',view:session?.view||'DTL',
    step:state.engineBusy?'analyzing':state.reviewStep,engineGuide:state.engineGuide,busy:state.engineBusy||state.storageBusy,
-   captureBusy:!!captureJob,playable:!!state.videoFile&&video.readyState>=2,
+   captureBusy:!!captureJob,captures:Object.keys(session?.captures||{}),playable:!!state.videoFile&&video.readyState>=2,
    online:state.engineOnline,phases:{...session?.phases},markMode:state.markMode,
    impact:session?.impactReference?.time,progress:analysisProgress&&!analysisProgress.hidden?analysisProgressText?.textContent||'':'',
    saved:session&&!hasUnsavedChanges(),runStatus:run?.status};
@@ -430,7 +434,7 @@ window.SwingLabReview={
   if(action==='phase'&&phases.includes(phase))setPhase(phase,time);
   if(action==='mark-mode'){state.markMode=!state.markMode;renderPhases()}
   if(action==='captures')await capturePhases();
-  if(action==='report'){window.SwingLabEditor?.close?.();go('results')}
+  if(action==='report'){if(!(await saveSession()))return;window.SwingLabEditor?.close?.();go('results')}
   updateSessionStatus();window.SwingLabEditor?.refresh?.();
  }
 };
@@ -496,14 +500,24 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     S.shapes=JSON.parse(JSON.stringify(event.detail.drawings||[]));
     resetDrawState();
   });
-  window.SwingLabEditor={getDrawings:()=>JSON.parse(JSON.stringify(S.shapes)),open:openEditor,close:closeEditor,refresh:refreshReview,
+  window.SwingLabEditor={getDrawings:()=>{flushCapture();return JSON.parse(JSON.stringify(imagePhase?videoShapes:S.shapes))},openCapture,open:openEditor,close:closeEditor,refresh:refreshReview,
  release(){closeEditor();fsVideo.removeAttribute('src');fsVideo.load()}};
-  let phaseSignature='';
+  let imagePhase=null,videoShapes=[],phaseSignature='';
+  const still=document.getElementById('fsCaptureImage');
+  function flushCapture(){if(imagePhase)window.SwingLabReview.saveCapture(imagePhase,S.shapes)}
+  function leaveCapture(){flushCapture();if(imagePhase)S.shapes=videoShapes;imagePhase=null;still.hidden=true;editor.classList.remove('is-image-review');phaseSignature='';}
+  function openCapture(phase){
+   const item=window.SwingLabReview.capture(phase);if(!item.src)return;
+   if(!imagePhase)videoShapes=S.shapes;else flushCapture();
+   imagePhase=phase;S.shapes=item.drawings;resetDrawState();fsVideo.pause();still.src=item.src;still.alt=phase+' swing capture';still.hidden=false;editor.hidden=false;editor.classList.add('is-image-review');document.getElementById('appView').inert=true;
+   phaseSignature='';refreshReview();still.onload=()=>{resizeCanvas();draw()};draw();
+  }
+
   function refreshReview(){
     const r=window.SwingLabReview?.snapshot?.();if(!r)return;
     const title=document.getElementById('fsReviewTitle'),status=document.getElementById('fsSessionStatus');
     if(title)title.textContent=r.title;
-    if(status)status.textContent=r.busy?(r.step==='analyzing'?'Analyzing on device':'Saving on device'):r.saved?'Saved on device':'Unsaved changes';
+    if(status)status.textContent=imagePhase?imagePhase+' capture':r.busy?(r.step==='analyzing'?'Analyzing on device':'Saving on device'):r.saved?'Saved on device':'Unsaved changes';
     const labels={
      impact:['1 / 3 · IMPACT','Where is impact?','Pause at contact, or the first frame of ball departure. You can skip this step.','Mark this frame','mark','Skip for now','skip'],
      analyze:['2 / 3 · ANALYZE',Number.isFinite(r.impact)?'Start from your impact':'Ready to analyze',Number.isFinite(r.impact)?'Impact at '+r.impact.toFixed(3)+' s. The other phases will be proposed on this device.':'No impact reference selected. Let the local marker find the swing.','Analyze swing','analyze','Back to impact','edit-impact'],
@@ -516,9 +530,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
       const b=document.getElementById(id);if(!b)continue;b.textContent=label;b.dataset.reviewCommand=command;
       b.disabled=command==='cancel'?false:r.busy||!r.playable||(command==='analyze'&&!r.online)||(command==='mark'&&(!fsVideo.currentTime||fsVideo.currentTime>=fsVideo.duration));
     }
-    editor.querySelectorAll('[data-review-command="save"]').forEach(b=>{b.disabled=r.busy||!r.playable});
-    const guide=document.getElementById('fsEngineGuide');if(guide)guide.hidden=!r.engineGuide||r.step==='review';
-    const trigger=document.getElementById('fsEngineTrigger');if(trigger){trigger.disabled=r.busy||!r.playable||!r.online;trigger.textContent=r.runStatus==='needs-review'?'Run Swing Lab again':'Analyze with Swing Lab'}
+    editor.querySelectorAll('[data-review-command="save"]').forEach(b=>{b.disabled=r.busy||!r.id});
+    const guide=document.getElementById('fsEngineGuide');if(guide)guide.hidden=!!imagePhase||!r.engineGuide||r.step==='review';
+    const trigger=document.getElementById('fsEngineTrigger');if(trigger){trigger.disabled=r.busy||!r.playable||!r.online;trigger.textContent=r.runStatus==='needs-review'?'Analyze again':'Analyze'}
     const options=document.getElementById('fsReviewOptions');if(options)options.hidden=false;
     const player=editor.querySelector('.fs-player');if(player)editor.style.setProperty('--fs-controls-height',player.offsetHeight+'px');
     const mode=document.getElementById('fsMarkMode');if(mode)mode.textContent=r.markMode?'Done marking':'Mark phases';
@@ -529,7 +543,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
        for(const name of ['Address','Takeaway','Top','Impact','Finish']){
         const t=r.phases[name],button=document.createElement('button'),label=document.createElement('strong'),time=document.createElement('span');
         label.textContent=name;time.textContent=Number.isFinite(t)?t.toFixed(2)+' s':'—';button.type='button';button.dataset.reviewPhase=name;
-        button.disabled=r.busy||!['manual','review'].includes(r.step);button.classList.toggle('is-marked',Number.isFinite(t));button.classList.toggle('is-mark-mode',r.markMode);
+        button.disabled=r.busy||!!imagePhase&&!r.captures.includes(name);button.classList.toggle('is-marked',Number.isFinite(t));button.classList.toggle('is-mark-mode',r.markMode);
         button.append(label,time);strip.append(button);
        }
       }
@@ -538,6 +552,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
 
 
   function openEditor(){
+    leaveCapture();setCompact(false);
     if(!mainVideo.src) return;
     S.view=window.SwingLabReview?.snapshot?.().view||'DTL';
     S.fitSafe=false;editor.classList.remove('is-fit-safe');
@@ -559,7 +574,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     refreshReview();setTimeout(()=>{ resizeCanvas(); draw(); updateTime(); }, 80);
   }
   function closeEditor(){
-    try { mainVideo.currentTime = fsVideo.currentTime || 0; } catch(e) {}
+    const wasImage=!!imagePhase;leaveCapture();
+    if(!wasImage)try { mainVideo.currentTime = fsVideo.currentTime || 0; } catch(e) {}
     fsVideo.pause();
     editor.hidden = true;
     document.getElementById('appView').inert=false;
@@ -661,6 +677,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
   }
   function setDrawEnabled(on){
     S.drawEnabled=on;
+    if(on){S.toolsCollapsed=false;toolPanel?.classList.remove('is-collapsed');}
     editor.classList.toggle('is-draw-off', !on);
     if(toolPanel) toolPanel.hidden=!on;
     if(toolDock) toolDock.hidden=true;
@@ -841,6 +858,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
   document.addEventListener('click', e=>{
     const phase=e.target.closest('[data-review-phase]');
     if(phase&&editor.contains(phase)){
+      if(imagePhase){openCapture(phase.dataset.reviewPhase);return;}
       e.preventDefault();e.stopPropagation();fsVideo.pause();const r=window.SwingLabReview?.snapshot?.(),name=phase.dataset.reviewPhase,t=r?.phases[name];
       if(r?.markMode||!Number.isFinite(t))window.SwingLabReview?.command?.('phase',fsVideo.currentTime,name);
       else{fsVideo.currentTime=t;mainVideo.currentTime=t;updateTime()}
@@ -849,8 +867,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     const review=e.target.closest('[data-review-command]');
     if(review&&editor.contains(review)){
       e.preventDefault();e.stopPropagation();const action=review.dataset.reviewCommand;
-      if(['mark','analyze','captures','edit-impact'].includes(action))fsVideo.pause();
-      if(action==='edit-impact')setDrawEnabled(false);
+      if(['mark','analyze','captures','edit-impact','save','report'].includes(action))fsVideo.pause();
+      if(['engine','edit-impact'].includes(action)){setDrawEnabled(false);setCompact(true);S.fitSafe=false;editor.classList.remove('is-fit-safe');const g=document.getElementById('fsEngineGuide');g.style.left='';g.style.top='';g.style.bottom='';}
+      if(action==='mark-mode'&&window.SwingLabReview.snapshot().engineGuide)window.SwingLabReview.command('manual');
       if(['engine','edit-impact','manual','save','captures','report'].includes(action)){const more=document.getElementById('fsReviewOptions');if(more)more.open=false}
       window.SwingLabReview?.command?.(action,fsVideo.currentTime).catch(()=>setStatus('The review action could not finish. Try again.'));
       return;
@@ -894,6 +913,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
   }, true);
 
   function handleFs(a){
+    if(a==='toggle-controls'){if(suppressToggle)suppressToggle=false;else setCompact(!editor.classList.contains('is-controls-compact'));}
     if(a==='open') openEditor();
     if(a==='close') closeEditor();
     if(a==='toggle-tools') setDrawEnabled(!S.drawEnabled);
@@ -915,8 +935,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     if(a==='snapshot') saveSnapshot();
   }
   function saveSnapshot(){
-    if(fsVideo.readyState<2)return setStatus('Wait for the video to load');
-    try{const output=document.createElement('canvas');output.width=canvas.width;output.height=canvas.height;const ctx=output.getContext('2d'),vw=fsVideo.videoWidth,vh=fsVideo.videoHeight,scale=Math.min(output.width/vw,output.height/vh),w=vw*scale,h=vh*scale;ctx.fillStyle='#071009';ctx.fillRect(0,0,output.width,output.height);ctx.drawImage(fsVideo,(output.width-w)/2,(output.height-h)/2,w,h);ctx.drawImage(canvas,0,0);const link=document.createElement('a');link.download='swing-lab-frame.png';link.href=output.toDataURL('image/png');link.click();setStatus('Image saved to your downloads')}catch{setStatus('Image could not be saved. Try phase captures instead')}
+    if(!imagePhase&&fsVideo.readyState<2)return setStatus('Wait for the video to load');
+    try{const output=document.createElement('canvas');output.width=canvas.width;output.height=canvas.height;const ctx=output.getContext('2d'),vw=imagePhase?still.naturalWidth:fsVideo.videoWidth,vh=imagePhase?still.naturalHeight:fsVideo.videoHeight,scale=Math.min(output.width/vw,output.height/vh),w=vw*scale,h=vh*scale;ctx.fillStyle='#071009';ctx.fillRect(0,0,output.width,output.height);ctx.drawImage(imagePhase?still:fsVideo,(output.width-w)/2,(output.height-h)/2,w,h);ctx.drawImage(canvas,0,0);const link=document.createElement('a');link.download='swing-lab-frame.png';link.href=output.toDataURL('image/png');link.click();setStatus('Image saved to your downloads')}catch{setStatus('Image could not be saved. Try phase captures instead')}
   }
   function setSpeed(sp){
     const idx=S.speeds.indexOf(sp);
@@ -976,7 +996,18 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     S.fps = Number.isFinite(rate) && rate > 10 && rate < 240 ? Math.round(rate) : 30;
     updateTime();
   });
-  fsTimeline.addEventListener('input', ()=>{ if(fsVideo.duration) fsVideo.currentTime=(+fsTimeline.value/1000)*fsVideo.duration; });
+  function setCompact(on){editor.classList.toggle('is-controls-compact',on);const b=document.getElementById('fsControlsHandle');b.setAttribute('aria-expanded',String(!on));b.textContent=on?'Show options':'Hide options';refreshReview()}
+  editor.querySelector('.fs-stage').addEventListener('click',e=>{if(!S.drawEnabled&&[fsVideo,canvas,still,e.currentTarget].includes(e.target))setCompact(!editor.classList.contains('is-controls-compact'))});
+  const handle=document.getElementById('fsControlsHandle');let sheetStart=null,suppressToggle=false;
+  handle.addEventListener('pointerdown',e=>{sheetStart=e.clientY;handle.setPointerCapture(e.pointerId)});
+  handle.addEventListener('pointerup',e=>{if(sheetStart!==null&&Math.abs(e.clientY-sheetStart)>20){setCompact(e.clientY>sheetStart);suppressToggle=true;}sheetStart=null});
+
+  let scrub=null;
+  fsTimeline.addEventListener('pointerdown',e=>{if(!fsVideo.duration)return;e.preventDefault();fsVideo.pause();scrub={x:e.clientX,y:e.clientY,time:fsVideo.currentTime};fsTimeline.setPointerCapture(e.pointerId)});
+  fsTimeline.addEventListener('pointermove',e=>{if(!scrub)return;e.preventDefault();const fine=Math.abs(e.clientY-scrub.y)>40?.15:1;fsVideo.currentTime=Math.max(0,Math.min(fsVideo.duration,fsVideo.currentTime+(e.clientX-scrub.x)/fsTimeline.getBoundingClientRect().width*fsVideo.duration*fine));scrub.x=e.clientX});
+  const endScrub=()=>{scrub=null};fsTimeline.addEventListener('pointerup',endScrub);fsTimeline.addEventListener('pointercancel',endScrub);
+  fsTimeline.addEventListener('input',()=>{if(!scrub&&fsVideo.duration){fsVideo.pause();fsVideo.currentTime=(+fsTimeline.value/1000)*fsVideo.duration}});
+
   window.addEventListener('resize', ()=>setTimeout(draw,120));
 
   document.addEventListener('pointerdown', e=>{

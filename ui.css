@@ -227,3 +227,21 @@ h1,h2,h3,h4,p{margin:0}h1,h2,h3,h4{color:var(--text);line-height:1.2;letter-spac
 @media(orientation:landscape) and (max-height:500px){.fullscreen-editor .fs-side{top:65px;grid-template-columns:repeat(3,46px);width:auto;right:12px}.fullscreen-editor .fs-player{width:min(calc(100% - 24px),560px);bottom:8px;padding:8px}.fs-workspace-actions{margin-bottom:4px}.fullscreen-editor .fs-phase-strip{margin-top:4px}.fullscreen-editor .fs-review-flow{max-width:460px;padding:10px;bottom:calc(var(--fs-controls-height,195px) + 16px)}}
 
 .fullscreen-editor .fs-workspace-actions .fs-engine-trigger{color:#163c24;font-size:11px;font-weight:750}
+
+/* v39: movable guidance, compact playback and saved capture workspace. */
+.fullscreen-editor .fs-side #fsEngineTrigger{background:#a3e96c;color:#163c24;font-size:10px;font-weight:750}
+.fullscreen-editor #fsControlsHandle{display:block;width:100%;min-height:28px;background:transparent;color:#bed5b5;border:0;font-size:10px;cursor:ns-resize;touch-action:none;margin:0 0 6px}
+.fullscreen-editor #fsControlsHandle:before{content:"";display:block;width:36px;height:3px;background:#afc8a6;border-radius:3px;margin:0 auto 4px}
+.fullscreen-editor .fs-workspace-actions{max-height:80px;opacity:1;transition:max-height .18s,opacity .18s,margin .18s}
+.fullscreen-editor.is-controls-compact .fs-workspace-actions{max-height:0;opacity:0;margin:0;overflow:hidden;visibility:hidden}
+.fullscreen-editor .fs-player #fsTimeline{display:block;width:100%;height:38px;padding:0;margin:8px 0 18px;touch-action:none;position:relative;z-index:1}
+.fullscreen-editor .fs-buttons{gap:14px;position:relative;z-index:2;margin-top:0}
+.fullscreen-editor .fs-buttons button{min-height:44px;min-width:64px;touch-action:manipulation}
+.fullscreen-editor .fs-guide-handle{cursor:move;touch-action:none;padding-right:12px}
+.fullscreen-editor .fs-guide-handle:before{content:"Drag to move";display:block;color:#96b78b;font-size:9px;margin-bottom:5px}
+.fullscreen-editor .fs-review-flow{transform:none;left:max(12px,calc(50% - 325px));max-height:40dvh;overflow:auto;width:min(calc(100% - 88px),650px)}
+.fullscreen-editor #fsCaptureImage{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#030a06}
+.fullscreen-editor.is-image-review #fullscreenVideo{visibility:hidden}
+.fullscreen-editor.is-image-review .fs-player-row,.fullscreen-editor.is-image-review #fsTimeline,.fullscreen-editor.is-image-review .fs-buttons,.fullscreen-editor.is-image-review #fsEngineTrigger,.fullscreen-editor.is-image-review #fsMarkMode{display:none}
+.fullscreen-editor .fs-side{max-height:calc(100dvh - 100px);overflow:auto;scrollbar-width:none}
+@media(orientation:landscape) and (max-height:500px){.fullscreen-editor .fs-player{width:min(calc(100% - 190px),560px);left:12px;transform:none}.fullscreen-editor .fs-review-flow{left:12px;bottom:auto;top:66px;max-width:440px}.fullscreen-editor .fs-side{grid-template-columns:repeat(2,46px)}}

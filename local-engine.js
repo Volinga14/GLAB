@@ -17,7 +17,7 @@
       times.push(timestamp);onProgress?.(profile?'Finding the swing on this device…':'Reading the swing frames…',Math.round((profile?0:30)+i/count*30));
     }return {frames,times,profile:motion};
   }
-  function run(samples,signal,onProgress){return new Promise((resolve,reject)=>{const worker=new Worker(new URL('./lab/candidate-worker.js?v=38-20261028',base)),job=crypto.randomUUID();let timer;
+  function run(samples,signal,onProgress){return new Promise((resolve,reject)=>{const worker=new Worker(new URL('./lab/candidate-worker.js?v=39-20261029',base)),job=crypto.randomUUID();let timer;
     const clean=()=>{clearTimeout(timer);worker.terminate();signal?.removeEventListener('abort',cancel)},cancel=()=>{clean();reject(new DOMException('Cancelled','AbortError'))};signal?.addEventListener('abort',cancel,{once:true});timer=setTimeout(()=>{clean();reject(Error('The local marker exceeded two minutes.'))},120000);
     worker.onmessage=e=>{if(e.data.id!==job)return;if(e.data.type==='progress'){onProgress?.(`Marking on this device: ${e.data.value}/48 images…`,60+e.data.value/48*40);return}clean();e.data.type==='error'?reject(Error(e.data.message)):resolve(e.data.result)};worker.onerror=()=>{clean();reject(Error('The local marker could not start. Reconnect once to download its resources.'))};if(signal?.aborted)return cancel();worker.postMessage({id:job,type:'analyze',...samples},samples.frames);
   })}

@@ -1,3 +1,9 @@
+## v39 · Fullscreen controls and capture review
+
+The lower panel opens expanded. Tap the video or use its draggable handle to keep only playback and phases visible. Analyze and Report live in the right toolbar. Analyze asks for an optional impact reference; its guide can be dragged away from the golfer. Phases remain available for manual corrections.
+
+The timeline supports relative dragging without jumping on touch-down; move vertically away from it for finer seeking. Frame buttons have separate 44 px hit areas. Save and Report create marked phase captures before persisting the session. Report images reopen in the fullscreen drawing workspace, with separate annotations for each phase, including older sessions without the original video.
+
 # Swing Lab
 
 Installable web application for reviewing golf swing videos. This checkout is the working source; earlier preview folders outside it are preserved snapshots.

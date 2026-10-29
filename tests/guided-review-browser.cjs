@@ -28,7 +28,12 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   await page.setInputFiles('#videoInput',path.join(source,'user-2.mp4'));
   await page.waitForFunction(()=>!document.getElementById('fullscreenEditor').hidden&&document.getElementById('fullscreenVideo').readyState>=2&&document.getElementById('fullscreenVideo').currentTime>.05);
   assert.equal(await page.locator('#fsEngineGuide').isVisible(),false);
-  assert.equal(await page.locator('#fsEngineTrigger').evaluate(e=>getComputedStyle(e).color),'rgb(22, 60, 36)');
+  assert.equal(await page.locator('#fsEngineTrigger').evaluate(e=>!!e.closest('.fs-side')),true);
+  await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});assert.equal(await page.locator('#fullscreenEditor').evaluate(e=>e.classList.contains('is-controls-compact')),true);
+  await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});assert.equal(await page.locator('#fullscreenEditor').evaluate(e=>e.classList.contains('is-controls-compact')),false);
+  const slider=await page.locator('#fsTimeline').boundingBox(),next=await page.locator('[data-fs-action="forward-frame"]').boundingBox();assert.ok(next.y>=slider.y+slider.height+8);
+  const before=await page.locator('#fullscreenVideo').evaluate(v=>v.currentTime);await page.locator('[data-fs-action="forward-frame"]').click();const after=await page.locator('#fullscreenVideo').evaluate(v=>v.currentTime);assert.ok(after>before&&after-before<.1);
+  await page.mouse.move(slider.x+slider.width/2,slider.y+slider.height/2);await page.mouse.down();await page.mouse.move(slider.x+slider.width/2+20,slider.y+slider.height/2,{steps:4});await page.mouse.up();assert.ok(await page.locator('#fullscreenVideo').evaluate(v=>v.paused));
   assert.equal(await page.locator('.fs-side [data-fs-action="toggle-tools"]').isVisible(),true);
   assert.equal(await page.locator('#fsPhaseStrip button').first().isEnabled(),true);
   await page.screenshot({path:path.join(artifacts,'workspace-manual.png'),fullPage:true});
@@ -56,6 +61,13 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   await page.setViewportSize({width:1654,height:800});await page.screenshot({path:path.join(artifacts,'guided-desktop.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);await page.setViewportSize({width:390,height:844});
   await page.locator('.fs-topbar [data-review-command="save"]').click();await page.waitForFunction(()=>!testing.state.storageBusy&&SwingLabReview.snapshot().saved,{},{timeout:90000});
+  await page.locator('.fs-side [data-review-command="report"]').click();await page.waitForFunction(()=>document.getElementById('fullscreenEditor').hidden);
+  assert.ok(await page.locator('[data-open-capture]').count());await page.locator('[data-open-capture="Impact"]').click();
+  await page.screenshot({path:path.join(artifacts,'capture-workspace.png')});assert.equal(await page.locator('#fsCaptureImage').isVisible(),true);await page.locator('.fs-side [data-fs-action="toggle-tools"]').click();await page.locator('[data-tool="line"]').click();await page.locator('[data-fs-action="collapse-tools"]').click();
+  await page.mouse.move(110,190);await page.mouse.down();await page.mouse.move(210,290,{steps:6});await page.mouse.up();
+  await page.locator('.fs-topbar [data-review-command="save"]').click();await page.waitForFunction(()=>!testing.state.storageBusy&&SwingLabReview.snapshot().saved,{},{timeout:90000});
+  assert.equal(await page.evaluate(()=>testing.state.current.captureDrawings.Impact.length),1);assert.equal(await page.evaluate(()=>testing.state.current.drawings.length),1);
+  await page.locator('[data-fs-action="close"]').click();await page.locator('[data-open-capture="Impact"]').click();assert.equal(await page.evaluate(()=>SwingLabReview.capture('Impact').drawings.length),1);
   await page.locator('[data-fs-action="close"]').click();await page.locator('.bottom-nav [data-nav="home"]').click();
   await page.waitForFunction(()=>{const i=document.querySelector('#latestCarousel img');return i?.complete&&i.naturalWidth>0&&i.src.startsWith('data:image/jpeg')});
   await page.screenshot({path:path.join(artifacts,'guided-preview.png'),fullPage:true});

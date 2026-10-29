@@ -30,7 +30,7 @@
       fileName: String(value.fileName || ''),
       date: Number.isFinite(Date.parse(value.date)) ? value.date : new Date().toISOString(),
       phases, captures, notes: typeof value.notes === 'string' ? value.notes : '',
-      thumb: image(value.thumb), drawings,
+      thumb: image(value.thumb), drawings, captureDrawings:Object.fromEntries(PHASES.filter(p=>captures[p]).map(p=>[p,normalize({id:'capture',drawings:value.captureDrawings?.[p]}).drawings])),
       ...(globalThis.SwingLabLearning?SwingLabLearning.normalize(value):{})
     };
   }
