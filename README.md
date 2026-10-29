@@ -1,3 +1,9 @@
+## v40 · Freely adjustable playback tray
+
+Drag the playback handle to any lower height, down to a 22 px grip; tap the video to lower or restore it. Review options and manual phase marking are in the side Options panel. The denser tray aligns playback speed with a thicker timeline.
+
+Options, speed, drawing tools and impact guidance are independent, scrollable panels with drag handles. Viewport bounds are enforced during dragging and after resizing. Impact selection restores the controls for seeking the contact frame.
+
 ## v39 · Fullscreen controls and capture review
 
 The lower panel opens expanded. Tap the video or use its draggable handle to keep only playback and phases visible. Analyze and Report live in the right toolbar. Analyze asks for an optional impact reference; its guide can be dragged away from the golfer. Phases remain available for manual corrections.

@@ -533,8 +533,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     editor.querySelectorAll('[data-review-command="save"]').forEach(b=>{b.disabled=r.busy||!r.id});
     const guide=document.getElementById('fsEngineGuide');if(guide)guide.hidden=!!imagePhase||!r.engineGuide||r.step==='review';
     const trigger=document.getElementById('fsEngineTrigger');if(trigger){trigger.disabled=r.busy||!r.playable||!r.online;trigger.textContent=r.runStatus==='needs-review'?'Analyze again':'Analyze'}
-    const options=document.getElementById('fsReviewOptions');if(options)options.hidden=false;
-    const player=editor.querySelector('.fs-player');if(player)editor.style.setProperty('--fs-controls-height',player.offsetHeight+'px');
+    keepPanelsVisible();const optionsToggle=editor.querySelector('[data-fs-action="options"]');if(optionsToggle)optionsToggle.setAttribute('aria-expanded',String(!document.getElementById('fsReviewOptions').hidden));
+    const player=editor.querySelector('.fs-player');if(player)editor.style.setProperty('--fs-controls-height',Math.max(22,player.offsetHeight-sheetOffset)+'px');
     const mode=document.getElementById('fsMarkMode');if(mode)mode.textContent=r.markMode?'Done marking':'Mark phases';
     const signature=JSON.stringify([r.id,r.phases,r.markMode,r.busy,r.step]);
     if(signature!==phaseSignature){
@@ -555,7 +555,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     leaveCapture();setCompact(false);
     if(!mainVideo.src) return;
     S.view=window.SwingLabReview?.snapshot?.().view||'DTL';
-    S.fitSafe=false;editor.classList.remove('is-fit-safe');
+    S.fitSafe=false;editor.classList.remove('is-fit-safe');document.getElementById('fsReviewOptions').hidden=true;speedMenu.hidden=true;
     updateLabels();
     editor.hidden = false;
     document.getElementById('appView').inert=true;
@@ -868,9 +868,9 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     if(review&&editor.contains(review)){
       e.preventDefault();e.stopPropagation();const action=review.dataset.reviewCommand;
       if(['mark','analyze','captures','edit-impact','save','report'].includes(action))fsVideo.pause();
-      if(['engine','edit-impact'].includes(action)){setDrawEnabled(false);setCompact(true);S.fitSafe=false;editor.classList.remove('is-fit-safe');const g=document.getElementById('fsEngineGuide');g.style.left='';g.style.top='';g.style.bottom='';}
+      if(['engine','edit-impact'].includes(action)){setDrawEnabled(false);setCompact(false);S.fitSafe=false;editor.classList.remove('is-fit-safe');const g=document.getElementById('fsEngineGuide');g.style.left='';g.style.top='';g.style.bottom='';}
       if(action==='mark-mode'&&window.SwingLabReview.snapshot().engineGuide)window.SwingLabReview.command('manual');
-      if(['engine','edit-impact','manual','save','captures','report'].includes(action)){const more=document.getElementById('fsReviewOptions');if(more)more.open=false}
+      if(['engine','edit-impact','manual','save','captures','report'].includes(action)){const more=document.getElementById('fsReviewOptions');if(more)more.hidden=true}
       window.SwingLabReview?.command?.(action,fsVideo.currentTime).catch(()=>setStatus('The review action could not finish. Try again.'));
       return;
     }
@@ -914,6 +914,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
 
   function handleFs(a){
     if(a==='toggle-controls'){if(suppressToggle)suppressToggle=false;else setCompact(!editor.classList.contains('is-controls-compact'));}
+    if(a==='options'){const p=document.getElementById('fsReviewOptions');p.hidden=!p.hidden;if(!p.hidden){speedMenu.hidden=true;placePanel(p)}editor.querySelector('[data-fs-action="options"]').setAttribute('aria-expanded',String(!p.hidden));}
     if(a==='open') openEditor();
     if(a==='close') closeEditor();
     if(a==='toggle-tools') setDrawEnabled(!S.drawEnabled);
@@ -928,7 +929,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     if(a==='clear'){ S.shapes=[]; S.selected=null; draw(); }
     if(a==='duplicate') duplicateSelected();
     if(a==='toggle-snap'){ S.snapLine=!S.snapLine; updateLabels(); }
-    if(a==='speed-menu'){ if(speedMenu) speedMenu.hidden=!speedMenu.hidden; updateLabels(); }
+    if(a==='speed-menu'){if(speedMenu){speedMenu.hidden=!speedMenu.hidden;if(!speedMenu.hidden)placePanel(speedMenu)}updateLabels();}
     if(a==='back-frame') step(-1);
     if(a==='forward-frame') step(1);
     if(a==='play'){if(fsVideo.paused)fsVideo.play().catch(()=>setStatus('This video cannot be played'));else fsVideo.pause()}
@@ -996,19 +997,25 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     S.fps = Number.isFinite(rate) && rate > 10 && rate < 240 ? Math.round(rate) : 30;
     updateTime();
   });
-  function setCompact(on){editor.classList.toggle('is-controls-compact',on);const b=document.getElementById('fsControlsHandle');b.setAttribute('aria-expanded',String(!on));b.textContent=on?'Show options':'Hide options';refreshReview()}
+  const player=editor.querySelector('.fs-player');let sheetOffset=0,sheetStart=null,suppressToggle=false;
+  function setSheetOffset(value){sheetOffset=Math.max(0,Math.min(Math.max(0,player.offsetHeight-22),value));player.style.setProperty('--sheet-offset',sheetOffset+'px');editor.classList.toggle('is-controls-compact',sheetOffset>10);const b=document.getElementById('fsControlsHandle');b.setAttribute('aria-expanded',String(sheetOffset<10));b.title=sheetOffset>10?'Raise playback controls':'Lower playback controls';editor.style.setProperty('--fs-controls-height',Math.max(22,player.offsetHeight-sheetOffset)+'px');}
+  function setCompact(on){setSheetOffset(on?player.offsetHeight-22:0)}
   editor.querySelector('.fs-stage').addEventListener('click',e=>{if(!S.drawEnabled&&[fsVideo,canvas,still,e.currentTarget].includes(e.target))setCompact(!editor.classList.contains('is-controls-compact'))});
-  const handle=document.getElementById('fsControlsHandle');let sheetStart=null,suppressToggle=false;
-  handle.addEventListener('pointerdown',e=>{sheetStart=e.clientY;handle.setPointerCapture(e.pointerId)});
-  handle.addEventListener('pointerup',e=>{if(sheetStart!==null&&Math.abs(e.clientY-sheetStart)>20){setCompact(e.clientY>sheetStart);suppressToggle=true;}sheetStart=null});
-
+  const handle=document.getElementById('fsControlsHandle');
+  handle.addEventListener('pointerdown',e=>{sheetStart={y:e.clientY,offset:sheetOffset,moved:false};handle.setPointerCapture(e.pointerId);e.preventDefault()});
+  handle.addEventListener('pointermove',e=>{if(!sheetStart)return;if(Math.abs(e.clientY-sheetStart.y)>3)sheetStart.moved=true;setSheetOffset(sheetStart.offset+e.clientY-sheetStart.y);e.preventDefault()});
+  const finishSheet=()=>{if(sheetStart?.moved)suppressToggle=true;sheetStart=null;};handle.addEventListener('pointerup',finishSheet);handle.addEventListener('pointercancel',()=>{sheetStart=null});
+  handle.addEventListener('keydown',e=>{if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();setSheetOffset(sheetOffset+(e.key==='ArrowDown'?20:-20))}});
+  function placePanel(panel){panel.style.left='12px';panel.style.top='78px';panel.style.bottom='auto';panel.style.transform='none';clampPanel(panel)}
+  function clampPanel(panel){if(panel.hidden||editor.hidden)return;const r=panel.getBoundingClientRect();if(!r.width||!r.height)return;const bounds=editor.getBoundingClientRect(),x=Math.max(6,Math.min(bounds.width-r.width-6,r.left-bounds.left)),y=Math.max(6,Math.min(bounds.height-r.height-6,r.top-bounds.top));if(Math.abs(x-(r.left-bounds.left))>.5||Math.abs(y-(r.top-bounds.top))>.5){panel.style.transform='none';panel.style.left=x+'px';panel.style.top=y+'px';panel.style.bottom='auto';}}
+  function keepPanelsVisible(){for(const id of ['toolPanel','fsEngineGuide','fsReviewOptions','speedMenu']){const p=document.getElementById(id);if(p)clampPanel(p)}}
   let scrub=null;
   fsTimeline.addEventListener('pointerdown',e=>{if(!fsVideo.duration)return;e.preventDefault();fsVideo.pause();scrub={x:e.clientX,y:e.clientY,time:fsVideo.currentTime};fsTimeline.setPointerCapture(e.pointerId)});
   fsTimeline.addEventListener('pointermove',e=>{if(!scrub)return;e.preventDefault();const fine=Math.abs(e.clientY-scrub.y)>40?.15:1;fsVideo.currentTime=Math.max(0,Math.min(fsVideo.duration,fsVideo.currentTime+(e.clientX-scrub.x)/fsTimeline.getBoundingClientRect().width*fsVideo.duration*fine));scrub.x=e.clientX});
   const endScrub=()=>{scrub=null};fsTimeline.addEventListener('pointerup',endScrub);fsTimeline.addEventListener('pointercancel',endScrub);
   fsTimeline.addEventListener('input',()=>{if(!scrub&&fsVideo.duration){fsVideo.pause();fsVideo.currentTime=(+fsTimeline.value/1000)*fsVideo.duration}});
 
-  window.addEventListener('resize', ()=>setTimeout(draw,120));
+  window.addEventListener('resize', ()=>setTimeout(()=>{setSheetOffset(sheetOffset);keepPanelsVisible();draw()},120));
 
   document.addEventListener('pointerdown', e=>{
     if(e.target.closest('.panel-mini')) return;
@@ -1031,6 +1038,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){video.paus
     e.preventDefault();
   }, true);
   document.addEventListener('pointerup', ()=>{ S.panelDrag=null; }, true);
+  document.addEventListener('pointercancel',()=>{S.panelDrag=null},true);
 
   updateLabels();
 })();

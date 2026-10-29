@@ -31,6 +31,27 @@ const root=path.resolve(__dirname,'..'),source=path.resolve(root,'../audit/revie
   assert.equal(await page.locator('#fsEngineTrigger').evaluate(e=>!!e.closest('.fs-side')),true);
   await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});assert.equal(await page.locator('#fullscreenEditor').evaluate(e=>e.classList.contains('is-controls-compact')),true);
   await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});assert.equal(await page.locator('#fullscreenEditor').evaluate(e=>e.classList.contains('is-controls-compact')),false);
+  const tray=page.locator('.fs-player'),grip=page.locator('#fsControlsHandle');
+  const original=await tray.boundingBox(),g=await grip.boundingBox();
+  await page.mouse.move(g.x+g.width/2,g.y+g.height/2);await page.mouse.down();await page.mouse.move(g.x+g.width/2,g.y+g.height/2+45,{steps:8});await page.mouse.up();
+  const halfway=await tray.boundingBox();assert.ok(Math.abs(halfway.y-original.y-45)<3);
+  await page.screenshot({path:path.join(artifacts,'tray-partial.png')});
+  await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});
+  await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});
+  const lowered=await grip.boundingBox();assert.ok(lowered.y>820);
+  await page.screenshot({path:path.join(artifacts,'tray-lowered.png')});
+  await page.locator('#fullscreenVideo').click({position:{x:110,y:200},force:true});
+  assert.equal(await page.locator('.fs-player #fsMarkMode').count(),0);
+  await page.locator('.fs-side [data-fs-action="options"]').click();assert.equal(await page.locator('#fsMarkMode').isVisible(),true);
+  for(const id of ['fsReviewOptions','speedMenu']){
+   if(id==='speedMenu')await page.locator('#fsSpeed').click();
+   const popup=page.locator('#'+id),h=await popup.locator('[data-drag-panel]').boundingBox();
+   await page.mouse.move(h.x+25,h.y+15);await page.mouse.down();await page.mouse.move(500,950,{steps:10});await page.mouse.up();
+   const r=await popup.boundingBox();assert.ok(r.x>=0&&r.y>=0&&r.x+r.width<=390&&r.y+r.height<=844);
+   await page.screenshot({path:path.join(artifacts,id+'-moved.png')});
+   if(id==='speedMenu')await page.locator('#speedMenu [data-speed="0.5"]').click();else await popup.locator('.panel-mini').click();
+  }
+  const speed=await page.locator('#fsSpeed').boundingBox(),rail=await page.locator('#fsTimeline').boundingBox();assert.ok(Math.abs(speed.y-rail.y)<5);assert.ok(speed.x>=rail.x+rail.width);
   const slider=await page.locator('#fsTimeline').boundingBox(),next=await page.locator('[data-fs-action="forward-frame"]').boundingBox();assert.ok(next.y>=slider.y+slider.height+8);
   const before=await page.locator('#fullscreenVideo').evaluate(v=>v.currentTime);await page.locator('[data-fs-action="forward-frame"]').click();const after=await page.locator('#fullscreenVideo').evaluate(v=>v.currentTime);assert.ok(after>before&&after-before<.1);
   await page.mouse.move(slider.x+slider.width/2,slider.y+slider.height/2);await page.mouse.down();await page.mouse.move(slider.x+slider.width/2+20,slider.y+slider.height/2,{steps:4});await page.mouse.up();assert.ok(await page.locator('#fullscreenVideo').evaluate(v=>v.paused));
