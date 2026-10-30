@@ -19,7 +19,9 @@ public class MainActivity extends Activity {
  private static final String HOST="appassets.androidplatform.net";
  @Override public void onCreate(Bundle state){
   super.onCreate(state);
-  web=new WebView(this);setContentView(web);
+  web=new WebView(this);android.widget.FrameLayout root=new android.widget.FrameLayout(this);
+  root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(insets.getSystemWindowInsetLeft(),insets.getSystemWindowInsetTop(),insets.getSystemWindowInsetRight(),insets.getSystemWindowInsetBottom());return insets.consumeSystemWindowInsets();});
+  root.addView(web,new android.widget.FrameLayout.LayoutParams(-1,-1));setContentView(root);
   WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setMediaPlaybackRequiresUserGesture(true);
   settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
   WebViewAssetLoader assets=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
@@ -64,6 +66,6 @@ public class MainActivity extends Activity {
  }
  private void hideFullscreen(){if(fullscreen==null)return;((ViewGroup)fullscreen.getParent()).removeView(fullscreen);fullscreen=null;web.setVisibility(View.VISIBLE);if(fullCallback!=null)fullCallback.onCustomViewHidden();fullCallback=null;}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PICK_VIDEO&&chooser!=null){chooser.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));chooser=null;}}
- @Override public void onBackPressed(){if(fullscreen!=null){hideFullscreen();return;}web.evaluateJavascript("(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return;}if(window.SwingLabEditor){window.SwingLabEditor.close();}})()",null);}
+ @Override public void onBackPressed(){if(fullscreen!=null){hideFullscreen();return;}web.evaluateJavascript("(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return true;}const e=document.getElementById('fullscreenEditor');if(e&&!e.hidden&&window.SwingLabEditor){window.SwingLabEditor.close();return true;}return false;})()",value->{if("false".equals(value))finish();});}
  @Override protected void onDestroy(){agent.close();web.removeJavascriptInterface("SwingLabNative");web.destroy();super.onDestroy();}
 }

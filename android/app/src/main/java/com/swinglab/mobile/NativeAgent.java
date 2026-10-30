@@ -28,7 +28,7 @@ public final class NativeAgent {
  private static final String AUTH="https://auth.openai.com", API="https://api.openai.com/v1", SCOPE="openid profile email offline_access resource.invoke chatgpt.tokens.use.direct", KEY="swinglab.oauth.v1";
  private final Activity activity;private final WebView web;private final SharedPreferences prefs;private final ExecutorService work=Executors.newCachedThreadPool();
  private final Object lock=new Object();private final AtomicBoolean busy=new AtomicBoolean(false);private final SecureRandom random=new SecureRandom();
- private JSONObject session,discovery;private JSONArray models=new JSONArray(),ledger=new JSONArray();private ServerSocket listener;private boolean destroyed=false;private final String hostId;private int attempts=0;
+ private JSONObject session,discovery;private JSONArray models=new JSONArray(),ledger=new JSONArray();private ServerSocket listener;private volatile boolean destroyed=false;private final String hostId;private int attempts=0;
  NativeAgent(Activity a,WebView w){activity=a;web=w;prefs=a.getSharedPreferences("swinglab-native",0);String id=prefs.getString("host_id",null);if(id==null){id="urn:uuid:"+UUID.randomUUID();prefs.edit().putString("host_id",id).apply();}hostId=id;try{session=loadSession();}catch(Exception ignored){session=null;}}
  @JavascriptInterface public void call(String action,String json,String requestId){
   if(destroyed||requestId==null||!requestId.matches("[A-Za-z0-9_-]{1,100}"))return;
