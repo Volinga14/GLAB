@@ -23,6 +23,8 @@ GitHub Actions builds `app-debug.apk` on pushes to `android-agent-trial`. The de
 7. Open the visual report. Evidence, phase audit and practice priorities are stored with the session without applying phase corrections automatically.
 8. Use **Share result and usage JSON** to export the test record. Reported tokens do not determine the remaining plan percentage or a monetary price.
 
+The app retains the latest 100 usage records on this device and can share a usage record even when an inference failed. Credentials and video images are excluded from this ledger.
+
 The experimental runtime allows three inference attempts per app process, including interrupted requests. It does not retry automatically. Reaching an account/client usage limit does not change the plan. If authorization or inference is rejected, keep the exact error; installing Android alone does not guarantee provider eligibility.
 
 ## Authentication and privacy

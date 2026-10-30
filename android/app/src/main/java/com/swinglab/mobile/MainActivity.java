@@ -43,9 +43,9 @@ public class MainActivity extends Activity {
   web.setWebChromeClient(new WebChromeClient(){
    @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
     if(chooser!=null)chooser.onReceiveValue(null);chooser=callback;
-    Intent intent=new Intent(Intent.ACTION_OPEN_DOCUMENT);intent.addCategory(Intent.CATEGORY_OPENABLE);
+    Intent intent=params.isCaptureEnabled()?new Intent(android.provider.MediaStore.ACTION_VIDEO_CAPTURE):new Intent(Intent.ACTION_OPEN_DOCUMENT);if(!params.isCaptureEnabled())intent.addCategory(Intent.CATEGORY_OPENABLE);
     String[] accepted=params.getAcceptTypes();String type="video/*";if(accepted.length>0&&accepted[0].contains("json"))type="application/json";
-    intent.setType(type);intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+    if(!params.isCaptureEnabled())intent.setType(type);intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
     try{startActivityForResult(intent,PICK_VIDEO);}catch(Exception e){chooser.onReceiveValue(null);chooser=null;}return true;
    }
    @Override public void onShowCustomView(View view,CustomViewCallback callback){if(fullscreen!=null){callback.onCustomViewHidden();return;}fullscreen=view;fullCallback=callback;web.setVisibility(View.GONE);addContentView(view,new ViewGroup.LayoutParams(-1,-1));}
