@@ -180,3 +180,15 @@ Validation: 80 logic/regression checks passed. The real-video Chrome check cover
 manual drawing before model invocation, explicit guide activation, optional
 impact/skip, anchored inference, annotation preservation, phases within the video,
 save and source thumbnails. Mobile and desktop screenshots were inspected.
+
+## v41: mobile local / agent reviews
+
+Analyze opens a mode chooser. On-device marking and all manual/editor tools remain available. Agent review prepares up to 30 source images (17 when source timing is unverified), then explicitly exports/shares a ZIP containing JPEG evidence, a manifest and the reviewer instructions. A compatible JSON image packet can also be exported for the authorized desktop trial.
+
+The static GitHub Pages app does **not** connect a ChatGPT subscription or send inference requests. The user reviews the images, chooses the destination, submits the request in ChatGPT or the local trial, and imports/pastes the JSON response. A complete response envelope carries `schema: "swinglab-agent-result/1"`, the exact `video_sha256`, the `request_id` and the `review` object. Responses with a mismatched identity, request or invalid evidence references are rejected. Bare responses require explicit confirmation of their association.
+
+Reports display the current phase timeline, phase-derived durations, evidence-linked practice priorities, a phase audit, limitations and requests for additional images. The reviewer can return zero priorities. Importing a response does not apply phase corrections or overwrite drawings. Save keeps the report and evidence in IndexedDB; changes to phase marks identify earlier image packages as stale.
+
+`video-tools.js` now checks the final image's presentation end when comparing movie duration. A short trailing audio segment no longer discards valid video presentation timestamps. This verifies source times, not exact contact timing or universal frame-accurate browser seeking.
+
+Tests: `node --test --test-isolation=none tests/*.test.cjs`. Two optional corpus checks require external private fixtures and are skipped when absent.

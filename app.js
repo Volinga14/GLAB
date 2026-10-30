@@ -22,6 +22,7 @@ function updateSessionStatus(){
  if(title)title.textContent=state.current?.title||'Your swing review';
  if(summary)summary.textContent=state.current?'Your phase captures and notes. Save to keep this review on your device.':'Start a new analysis to create your first report.';
  updateLearningUI();
+ window.SwingLabAgent?.renderReport?.();
  if(meta)meta.innerHTML=state.current?`<span class="meta-chip">${phaseCount(state.current)}/5 phases</span><span class="meta-chip">${Object.keys(state.current.captures||{}).length} captures</span><span class="meta-chip">${state.current.analyses?.length?'Local marking + review':'Manual review'}</span>`:'';
 }
 const installButtons=()=>document.querySelectorAll('[data-action="install-app"]');
@@ -179,8 +180,10 @@ function setAnalysisProgress(on,text=''){if(!analysisProgress)return;analysisPro
 function isStandalone(){return matchMedia('(display-mode: standalone)').matches||navigator.standalone===true}
 function updateInstallButtons(){installButtons().forEach(b=>{b.hidden=isStandalone();b.innerHTML=uiIcon('download')+'<span>Install app</span>'})}
 async function installApp(){if(isStandalone())return modalMsg('Swing Lab is installed.','Open it from your home screen whenever you want to analyze a swing.');if(state.installPrompt){const promptEvent=state.installPrompt;state.installPrompt=null;promptEvent.prompt();const choice=await promptEvent.userChoice.catch(()=>({outcome:'dismissed'}));updateInstallButtons();return modalMsg(choice.outcome==='accepted'?'Installing Swing Lab.':'Install was cancelled.',choice.outcome==='accepted'?'The app will appear on your home screen once the browser finishes installing it.':'You can try again from the Install button.')}const isiOS=/iphone|ipad|ipod/i.test(navigator.userAgent);modalMsg('Install Swing Lab.',isiOS?'In Safari, tap Share and choose Add to Home Screen.':'Open the browser menu and choose Install app or Add to Home screen. If it does not appear yet, refresh this page once.')}
-function setupPwa(){updateInstallButtons();window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.installPrompt=e;updateInstallButtons()});window.addEventListener('appinstalled',()=>{state.installPrompt=null;updateInstallButtons();modalMsg('Swing Lab installed.','You can now launch it from your home screen.')});if('serviceWorker'in navigator&&location.protocol!=='file:'){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{})}}
+function setupPwa(){updateInstallButtons();window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();state.installPrompt=e;updateInstallButtons()});window.addEventListener('appinstalled',()=>{state.installPrompt=null;updateInstallButtons();modalMsg('Swing Lab installed.','You can now launch it from your home screen.')});if(!window.SwingLabNative&&'serviceWorker'in navigator&&location.protocol!=='file:'){navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(()=>{})}}
 async function loadEngine(){
+  if(window.SwingLabNative){setEngineStatus('online','Bundled with Android app');return;}
+
   if(!('serviceWorker'in navigator))return modalMsg('Offline preparation unavailable.','Use HTTPS or localhost in a supported browser.');
   try{const registration=await navigator.serviceWorker.register('./sw.js',{scope:'./'});let worker=registration.installing||registration.waiting;
     if(worker&&worker.state!=='activated')await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('Preparation is taking longer. Reopen the app and try again.')),60000);const inspect=()=>{if(worker.state==='activated'){clearTimeout(timer);resolve()}if(worker.state==='redundant'){clearTimeout(timer);reject(Error('Could not save the offline resources.'))}};worker.addEventListener('statechange',inspect);inspect()});
@@ -407,6 +410,19 @@ document.addEventListener('swinglab:editor-opened',hideToast);
 document.addEventListener('keydown',e=>{const overlay=document.querySelector('.fullscreen-editor:not([hidden]),.compare-viewer:not([hidden])');if(!overlay||!modal.hidden)return;if(e.key==='Escape'&&overlay.id==='compareViewer'){e.preventDefault();closeCompareViewer()}if(e.key==='Tab'){const controls=Array.from(overlay.querySelectorAll('button,input,select,textarea')).filter(el=>!el.disabled&&el.getClientRects().length);const first=controls[0],last=controls[controls.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}}});
 
 
+/* Agent review uses the same session, storage, and fullscreen editor. */
+window.SwingLabAgentBridge={
+ current:()=>state.current?clone(state.current):null,file:()=>state.videoFile,busy:()=>state.engineBusy||state.storageBusy,
+ playable:()=>!!state.videoFile&&video.readyState>=2,
+ mode(mode){if(state.current)state.current.analysisMode=mode;updateSessionStatus()},
+ startLocal(){if(state.videoFile&&video.readyState>=2){go('review');window.SwingLabEditor?.open?.()}state.engineGuide=true;state.reviewStep=Number.isFinite(state.current?.impactReference?.time)?'analyze':'impact';updateSessionStatus();window.SwingLabEditor?.refresh?.()},
+ setContext(context,metadata){if(!state.current)return;Object.assign(state.current,{duration:metadata.duration,videoSha256:metadata.sha256,timing:metadata.timing,agentContext:context,agentReview:null,analysisMode:'agent'});updateSessionStatus()},
+ setReview(review){if(state.current){state.current.agentReview=review;updateSessionStatus()}},
+ async save(){if(!(await saveSession()))throw Error('The review could not be saved. Keep this page open and try Save again.');},
+ jump(time){if(!state.videoFile)return;go('review');window.SwingLabEditor?.open?.();video.pause();video.currentTime=time;const full=document.getElementById('fullscreenVideo');if(full){full.pause();full.currentTime=time}},
+ report(){window.SwingLabEditor?.close?.();go('results')}
+};
+
 /* A small UI bridge keeps the fullscreen workspace on the same session/actions. */
 window.SwingLabReview={
  capture(phase){return {src:state.current?.captures?.[phase],drawings:clone(state.current?.captureDrawings?.[phase]||[]) };},
@@ -425,7 +441,7 @@ window.SwingLabReview={
   if(action==='manual'){if(state.engineBusy)cancelAnalysis();state.engineGuide=false;state.reviewStep='manual';updateSessionStatus();return}
   if(action==='cancel'){cancelAnalysis();window.SwingLabEditor?.refresh?.();return}
   if(state.engineBusy||state.storageBusy)return;
-  if(action==='engine'){state.engineGuide=true;state.reviewStep=Number.isFinite(state.current.impactReference?.time)?'analyze':'impact'}
+  if(action==='engine'){window.SwingLabAgent.openModes();return}
   if(action==='mark')markImpactReference(time);
   if(action==='skip'){clearImpactReference();state.reviewStep='analyze'}
   if(action==='edit-impact'){state.reviewStep='impact';state.engineGuide=true;}

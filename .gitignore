@@ -1,3 +1,11 @@
 node_modules/
 test-results/
 .test-artifacts/
+
+# Native Android build products and local credentials
+android/.gradle/
+android/local.properties
+android/app/build/
+android/app/src/main/assets/
+*.jks
+*.keystore

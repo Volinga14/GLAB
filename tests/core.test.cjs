@@ -42,6 +42,7 @@ async function environment(history=[]){
   context.SwingLabLearning.collect=async()=>[];
   const metadata={sha256:'a'.repeat(64),duration:10,timing:{source:'seconds',verified:false,times:[]}};
   context.SwingLabLocal={prepare:async()=>metadata,analyze:async()=>localResult({impact:2})};
+  vm.runInContext(fs.readFileSync(path.join(root,'agent-review.js'),'utf8'),context);
   vm.runInContext(storage,context);
   const fakeStore={init:async()=>({history:copy(history)}),save:async(s,f)=>{records.set(s.id,copy(s));if(f)videos.set(s.id,f)},
     video:async id=>videos.get(id)||null,remove:async id=>{records.delete(id);videos.delete(id)},clear:async()=>{records.clear();videos.clear()}};
@@ -171,7 +172,7 @@ test('both HTML pages request exactly the scripts and styles that are precached'
   const sw=serviceWorker();const shell=vm.runInContext('Array.from(SHELL_URLS)',sw.context);
   for(const name of ['index.html','dashboard.html']){
     const html=fs.readFileSync(path.join(root,name),'utf8');const urls=[...html.matchAll(/<script src="([^\"]+)"|<link rel="stylesheet" href="([^\"]+)"/g)].map(m=>m[1]||m[2]);
-    assert.equal(urls.length,12);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
+    assert.equal(urls.length,16);for(const url of urls){assert.ok(shell.includes('https://test.invalid/GLAB/'+url));assert.ok(fs.existsSync(path.join(root,url.split('?')[0])))}
   }
 });
 
@@ -195,7 +196,7 @@ test('clearing all phases also removes the analysis impact reference',async()=>{
 
 test('guided review asks for impact, allows skipping and proceeds to phase review',async()=>{
  const {a,c}=await environment();await a.loadVideoFile(file('guided'));
- assert.equal(a.state.current.view,'DTL');assert.equal(c.SwingLabReview.snapshot().step,'manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().step,'impact');
+ assert.equal(a.state.current.view,'DTL');assert.equal(c.SwingLabReview.snapshot().step,'manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);let opened=0;c.SwingLabAgent.openModes=()=>{opened++};await c.SwingLabReview.command('engine');assert.equal(opened,1);assert.equal(c.SwingLabReview.snapshot().engineGuide,false);c.SwingLabAgentBridge.startLocal();assert.equal(c.SwingLabReview.snapshot().step,'impact');
  await c.SwingLabReview.command('skip');assert.equal(c.SwingLabReview.snapshot().step,'analyze');
  assert.equal(a.state.current.impactReference,null);
  let received;c.SwingLabLocal.analyze=async(f,o)=>{received=o;return localResult({address:.5,takeaway:1,top:2,impact:2.5,finish:4})};
@@ -220,7 +221,7 @@ test('manual fullscreen review works without invoking the motor and keeps marks 
  await c.SwingLabReview.command('phase',1.7,'Top');
  assert.equal(a.state.current.phases.Top,1.7);assert.equal(calls,0);
  assert.equal(c.SwingLabReview.snapshot().step,'manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);
- await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().engineGuide,true);
+ c.SwingLabAgent.openModes=()=>{};await c.SwingLabReview.command('engine');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);c.SwingLabAgentBridge.startLocal();assert.equal(c.SwingLabReview.snapshot().engineGuide,true);
  await c.SwingLabReview.command('manual');assert.equal(c.SwingLabReview.snapshot().engineGuide,false);
  assert.equal(a.state.current.phases.Top,1.7);assert.equal(calls,0);
 });

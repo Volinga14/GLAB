@@ -32,7 +32,8 @@
       const times=pts.map(t=>(t-mediaStart)/scale+delay).sort((a,b)=>a-b).filter(t=>t>=-1e-7&&t<segmentEnd-1e-7).map(t=>Math.max(0,t));
       if(times.length<2||!finite(duration)||times[0]>.15||times.at(-1)>duration+1e-5||times.some((t,i)=>i&&t<=times[i-1]))return unknown;
       const gaps=times.slice(1).map((t,i)=>t-times[i]),step=gaps.reduce((a,b)=>a+b,0)/gaps.length;
-      if(duration-times.at(-1)>Math.max(.1,step*3))return unknown;
+      const presentationEnd=Math.min(segmentEnd,Math.max(...pts.map((t,i)=>(t+deltas[i]-mediaStart)/scale+delay)));
+      if(duration-presentationEnd>Math.max(.1,step*3))return unknown;
       const cfr=gaps.every(g=>Math.abs(g-step)<1e-6)&&times[0]<step*1.01;
       return {source:'mp4-presentation-timestamps',verified:true,cfrVerified:cfr,fps:cfr?1/step:null,times};
     }catch{return unknown}
