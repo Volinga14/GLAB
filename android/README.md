@@ -55,3 +55,9 @@ Credential writes complete synchronously before activation. Refreshes are serial
 The connection panel distinguishes browser authorization, code exchange, identity validation, storage, renewal, model discovery and readiness. A bounded diagnostic history contains stage, sanitized code and time; no tokens, callback URLs, authorization codes, PKCE secrets or account identifiers are exported in diagnostics. Diagnostics can be shared before any inference completes.
 
 Run `gradle -p android testDebugUnitTest assembleDebug` for native protocol checks and compilation, and `npm test` for web and connection UI tests. The tests exercise callback binding, returning client IDs, restart expiry, token rotation, network failure recovery, automatic catalog discovery and diagnostic export. They do not replace an authorized device test with a real ChatGPT account.
+
+## 0.3 · Coaching report
+
+The visible app name is SwingLab; package com.swinglab.mobile.beta and the persistent Beta signing key remain unchanged so updating Beta 0.2 keeps its sessions and account. The shared web report adds evidence-bound strengths, six coaching areas, a derived indicative score, structured drills and a practice plan. New instructions require a fresh review to populate the extra fields; existing reviews remain compatible. Phase suggestions are separate from the coaching report and never change user marks automatically.
+
+Native shareReport exports self-contained HTML through the same narrow FileProvider cache directory. printReport uses a dedicated JavaScript-disabled, network-blocked WebView and Android PrintManager; the user chooses the destination, including Save as PDF. The print WebView is released when its adapter finishes. No account credentials, usage ledger or client registration are included in the client-facing report.

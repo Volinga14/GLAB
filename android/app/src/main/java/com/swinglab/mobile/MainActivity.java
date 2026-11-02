@@ -64,6 +64,15 @@ public class MainActivity extends Activity {
   Intent share=new Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
   runOnUiThread(()->startActivity(Intent.createChooser(share,"Share SwingLab result")));
  }
+ void shareReport(String html)throws Exception{
+  if(html.length()>16000000)throw new Exception("Report too large");
+  java.io.File directory=new java.io.File(getCacheDir(),"agent-exports");directory.mkdirs();
+  java.io.File file=new java.io.File(directory,"SwingLab_Informe_Entrenamiento.html");
+  try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){out.write(html.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
+  Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".files",file);
+  Intent share=new Intent(Intent.ACTION_SEND).setType("text/html").putExtra(Intent.EXTRA_STREAM,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+  runOnUiThread(()->startActivity(Intent.createChooser(share,"Compartir informe de swing")));
+ }
  private void hideFullscreen(){if(fullscreen==null)return;((ViewGroup)fullscreen.getParent()).removeView(fullscreen);fullscreen=null;web.setVisibility(View.VISIBLE);if(fullCallback!=null)fullCallback.onCustomViewHidden();fullCallback=null;}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PICK_VIDEO&&chooser!=null){chooser.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));chooser=null;}}
  @Override protected void onResume(){super.onResume();if(agent!=null)agent.resumed();}

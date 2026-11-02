@@ -1,7 +1,7 @@
 name: Android agent trial
 on:
   push:
-    branches: [android-agent-trial]
+    branches: [android-agent-trial, main]
     paths: ['android/**', '*.js', '*.html', '*.css', '*.txt', '.github/workflows/android-trial.yml']
   workflow_dispatch:
 permissions:

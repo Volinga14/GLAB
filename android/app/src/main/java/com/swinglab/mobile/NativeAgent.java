@@ -49,6 +49,8 @@ public final class NativeAgent {
    switch(action){
     case "status":result=status();break;
     case "shareResult":((MainActivity)screen()).shareResult(p.getString("contents"));result=new JSONObject().put("message","Choose where to share the result JSON.");break;
+    case "shareReport":((MainActivity)screen()).shareReport(p.getString("html"));result=new JSONObject().put("message","Informe listo para compartir.");break;
+    case "printReport":String html=p.getString("html");if(html.length()>16000000)throw new TrialException("El informe es demasiado grande.");Activity target=screen();main.post(()->ReportPrinter.print(target,html));result=new JSONObject().put("message","Selecciona Guardar como PDF.");break;
     case "connect":result=connect();break;
     case "models":result=modelList();break;
     case "cancelConnect":cancelAuthorization();result=status();break;

@@ -19,11 +19,11 @@ function updateSessionStatus(){
  document.querySelectorAll('[data-action="capture-phases"]').forEach(b=>{b.disabled=!playable||!phaseCount(state.current)||!!captureJob;b.setAttribute('aria-busy',String(!!captureJob))});
  const help=document.getElementById('phaseHelp');if(help)help.textContent=state.markMode?'Marking mode is on. Tap a phase to set it at this frame.':'Pause at a key moment, then tap an unmarked phase. Tap a marked phase to jump back to it.';
  const title=document.getElementById('reportTitle'),summary=document.getElementById('reportSummary'),meta=document.getElementById('reportMeta');
- if(title)title.textContent=state.current?.title||'Your swing review';
- if(summary)summary.textContent=state.current?'Your phase captures and notes. Save to keep this review on your device.':'Start a new analysis to create your first report.';
+ if(title)title.textContent=state.current?.title||'Tu informe de swing';
+ if(summary)summary.textContent=state.current?.agentReview?'Tus puntos clave, ejercicios y próximos pasos.':state.current?'Tus momentos clave y notas, guardados en este dispositivo.':'Empieza un análisis para crear tu primer informe.';
  updateLearningUI();
  window.SwingLabAgent?.renderReport?.();
- if(meta)meta.innerHTML=state.current?`<span class="meta-chip">${phaseCount(state.current)}/5 phases</span><span class="meta-chip">${Object.keys(state.current.captures||{}).length} captures</span><span class="meta-chip">${state.current.analyses?.length?'Local marking + review':'Manual review'}</span>`:'';
+ if(meta&&state.current?.agentReview){const r=state.current.agentReview;meta.innerHTML=`<span class="meta-chip">${r.priorities.length} prioridades</span><span class="meta-chip">${r.practice_plan?.length||0} sesiones de práctica</span><span class="meta-chip">Análisis técnico</span>`;}else if(meta)meta.innerHTML=state.current?`<span class="meta-chip">${phaseCount(state.current)}/5 phases</span><span class="meta-chip">${Object.keys(state.current.captures||{}).length} captures</span><span class="meta-chip">${state.current.analyses?.length?'Local marking + review':'Manual review'}</span>`:'';
 }
 const installButtons=()=>document.querySelectorAll('[data-action="install-app"]');
 const phases=['Address','Takeaway','Top','Impact','Finish'];

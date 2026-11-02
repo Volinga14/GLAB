@@ -192,3 +192,13 @@ Reports display the current phase timeline, phase-derived durations, evidence-li
 `video-tools.js` now checks the final image's presentation end when comparing movie duration. A short trailing audio segment no longer discards valid video presentation timestamps. This verifies source times, not exact contact timing or universal frame-accurate browser seeking.
 
 Tests: `node --test --test-isolation=none tests/*.test.cjs`. Two optional corpus checks require external private fixtures and are skipped when absent.
+
+## v42 · Informe para mejorar el swing
+
+El informe del agente prioriza puntos fuertes, hasta tres cambios técnicos, ejercicios dosificados y un plan de sesiones. Las imágenes de evidencia se pueden ampliar dentro de la app. La revisión de fases y las limitaciones quedan en apartados secundarios; las sugerencias de tiempo no modifican las marcas del usuario.
+
+La nota es orientativa y se calcula como media de al menos tres áreas evaluables con evidencia y confianza media/alta. Las áreas no visibles quedan como N/E, sin restar puntos. No equivale a handicap ni a una medición validada. Los informes anteriores siguen siendo legibles; una revisión nueva añade la nueva rúbrica y el plan.
+
+**Guardar / compartir informe** genera HTML autónomo con fotografías incluidas. **Exportar PDF** abre la impresión local: en Android se utiliza el diálogo del sistema, que permite Guardar como PDF. En la web depende de las opciones de impresión del navegador. No se usa un servicio externo para generar documentos.
+
+Android 0.3 actualiza el paquete de Beta 0.2 con la misma firma y conserva sus datos y sesión. Su nombre visible pasa a SwingLab. La conexión directa con la cuenta está en la app Android; la web mantiene la opción de exportar/importar revisiones.
