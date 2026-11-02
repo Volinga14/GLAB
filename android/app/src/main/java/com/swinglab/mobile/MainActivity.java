@@ -25,7 +25,7 @@ public class MainActivity extends Activity {
   WebSettings settings=web.getSettings();settings.setJavaScriptEnabled(true);settings.setDomStorageEnabled(true);settings.setMediaPlaybackRequiresUserGesture(true);
   settings.setAllowFileAccess(false);settings.setAllowContentAccess(true);settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
   WebViewAssetLoader assets=new WebViewAssetLoader.Builder().addPathHandler("/assets/",new WebViewAssetLoader.AssetsPathHandler(this)).build();
-  agent=new NativeAgent(this,web);web.addJavascriptInterface(agent,"SwingLabNative");
+  agent=NativeAgent.attach(this,web);web.addJavascriptInterface(agent,"SwingLabNative");
   web.setWebViewClient(new WebViewClient(){
    @Override public WebResourceResponse shouldInterceptRequest(WebView view,WebResourceRequest request){
     WebResourceResponse local=assets.shouldInterceptRequest(request.getUrl());
@@ -66,6 +66,8 @@ public class MainActivity extends Activity {
  }
  private void hideFullscreen(){if(fullscreen==null)return;((ViewGroup)fullscreen.getParent()).removeView(fullscreen);fullscreen=null;web.setVisibility(View.VISIBLE);if(fullCallback!=null)fullCallback.onCustomViewHidden();fullCallback=null;}
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);if(request==PICK_VIDEO&&chooser!=null){chooser.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result,data));chooser=null;}}
+ @Override protected void onResume(){super.onResume();if(agent!=null)agent.resumed();}
+ @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);if(agent!=null)agent.resumed();}
  @Override public void onBackPressed(){if(fullscreen!=null){hideFullscreen();return;}web.evaluateJavascript("(()=>{const d=document.querySelector('dialog[open]');if(d){d.close();return true;}const e=document.getElementById('fullscreenEditor');if(e&&!e.hidden&&window.SwingLabEditor){window.SwingLabEditor.close();return true;}return false;})()",value->{if("false".equals(value))finish();});}
- @Override protected void onDestroy(){agent.close();web.removeJavascriptInterface("SwingLabNative");web.destroy();super.onDestroy();}
+ @Override protected void onDestroy(){agent.detach(this);web.removeJavascriptInterface("SwingLabNative");web.destroy();super.onDestroy();}
 }

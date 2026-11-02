@@ -10,15 +10,15 @@ Use JDK 17, Android SDK 35 and Gradle 8.9:
 gradle -p android assembleDebug
 ```
 
-GitHub Actions builds `app-debug.apk` on pushes to `android-agent-trial`. The debug package is `com.swinglab.mobile.trial` and its label is **SwingLab Trial**. It is separate from an installed SwingLab PWA. This is an experimental debug build, not a store release. Signing across future builds needs a stable release key; do not treat CI debug APKs as a production update channel.
+GitHub Actions builds `app-debug.apk` on pushes to `android-agent-trial`. The debug package is `com.swinglab.mobile.beta` and its label is **SwingLab Beta**. It is separate from an installed SwingLab PWA. This is an experimental debug build, not a store release. The CI APK is an intermediate debug package. User deliveries are re-signed locally with the persistent Beta signing key, which is kept privately and never committed. The old Trial key was generated on an ephemeral CI runner and cannot be recovered. Beta therefore installs beside Trial; it does not overwrite Trial sessions. Future Beta deliveries must reuse the same private signing key to preserve the app data and OAuth session.
 
 ## First phone test
 
-1. Install the APK and open **SwingLab Trial**. No original video is included.
+1. Install the APK and open **SwingLab Beta**. No original video is included.
 2. Load a short video, tap **Analyze**, choose **On this device**, optionally mark impact, and review all phases.
 3. Tap **Agent**, then **Prepare swing images**. Preview the selected images.
-4. Tap **Continue with ChatGPT**. The official browser authorization returns to a listener bound exclusively to `127.0.0.1` on this phone. Return to the app after the callback page appears.
-5. Tap **Refresh models**, select an available model and run the single short connection test.
+4. Tap **Continue with ChatGPT**. A short-lived foreground service keeps the loopback listener alive for up to ten minutes while the system browser authorizes. The callback page offers **Abrir SwingLab**. This link only brings the app forward; OAuth codes are accepted exclusively by the loopback listener after state checks.
+5. Models load automatically after authorization and on app resume. The first available model is selected, or the prior selection is restored. Run the short connection test once; it is never run automatically.
 6. If it completes, authorize sending the selected images and run **Analyze with connected account**. No API key or automatic paid-API fallback is configured.
 7. Open the visual report. Evidence, phase audit and practice priorities are stored with the session without applying phase corrections automatically.
 8. Use **Share result and usage JSON** to export the test record. Reported tokens do not determine the remaining plan percentage or a monetary price.
@@ -45,3 +45,13 @@ Official references:
 - https://developers.openai.com/siwc/token-sharing-open-source/sign-in
 - https://developers.openai.com/siwc/token-sharing-open-source/preview-limitations
 - https://developer.android.com/develop/ui/views/layout/webapps/load-local-content
+
+## Connection recovery in 0.2
+
+The native runtime belongs to the application process, not the Activity/WebView. Destroying an Activity while the browser is open detaches the view without discarding the pending authorization. Native resume, document visibility and first initialization restore the account and fetch the model catalog without opening sign-in or sending inference. The foreground service is used only during user-started authorization and stops after completion, cancellation or timeout. A force-stopped process requires a fresh authorization attempt; this is reported explicitly.
+
+Credential writes complete synchronously before activation. Refreshes are serialized independently from UI status reads; rotating access and refresh credentials are persisted together before replacing the active session. A failed network request preserves the saved session. Revocation or an invalid grant requires explicit sign-in. Account/host registration is reused; available identity hints reduce returning sign-in steps.
+
+The connection panel distinguishes browser authorization, code exchange, identity validation, storage, renewal, model discovery and readiness. A bounded diagnostic history contains stage, sanitized code and time; no tokens, callback URLs, authorization codes, PKCE secrets or account identifiers are exported in diagnostics. Diagnostics can be shared before any inference completes.
+
+Run `gradle -p android testDebugUnitTest assembleDebug` for native protocol checks and compilation, and `npm test` for web and connection UI tests. The tests exercise callback binding, returning client IDs, restart expiry, token rotation, network failure recovery, automatic catalog discovery and diagnostic export. They do not replace an authorized device test with a real ChatGPT account.
