@@ -25,4 +25,8 @@ function select(phases,duration,timing,density){
  const key=source==null?time.toFixed(6):String(source);if(!unique.has(key))unique.set(key,{time,source_frame:source,labels:[]});unique.get(key).labels.push(c.label)}
  return [...unique.values()].sort((a,b)=>a.time-b.time).map((f,i)=>({...f,frame_id:'F'+String(i+1).padStart(3,'0')}));
 }
-return {select};});
+function overview(duration,timing){
+ if(!Number.isFinite(duration)||duration<=0||duration>12)throw Error('Usa un clip corto de un único swing (hasta 12 segundos) o marca sus fases para enfocar el análisis.');
+ const points=new Map();for(let i=0;i<30;i++){let time=Math.max(0,(duration-.001)*i/29),source=null;if(timing?.verified&&timing.times?.length){let lo=0,hi=timing.times.length-1;while(lo<hi){const m=Math.ceil((lo+hi)/2);if(timing.times[m]<=time)lo=m;else hi=m-1}source=lo;time=timing.times[lo]}const key=source==null?time.toFixed(6):String(source);points.set(key,{time,source_frame:source,labels:['vista general; fases sin confirmar']});}return [...points.values()].sort((a,b)=>a.time-b.time).map((f,i)=>({...f,frame_id:'F'+String(i+1).padStart(3,'0')}));
+}
+return {select,overview};});

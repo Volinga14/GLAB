@@ -16,3 +16,5 @@ test('changed phase or impact marks invalidate an old package fingerprint',()=>{
 test('source-frame refinement respects its budget at high frame rates',()=>{const p={address:{time:.2},takeaway:{time:1},top:{time:2},impact:{time:2.3},finish:{time:4}},t={verified:true,times:Array.from({length:600},(_,i)=>i/120)};const frames=S.select(p,5,t,'refine');assert.equal(frames.length,30);assert.equal(new Set(frames.map(f=>f.source_frame)).size,30);for(const name of A.IDS)assert.ok(frames.some(f=>f.labels.includes(name)))});
 
 test('a stored package from another video is not restored into this session',()=>assert.equal(A.normalizeState({videoSha256:sha2,agentContext:context(),agentReview:review()}).agentContext,null));
+
+test('unmarked short swing can use honest overview frames without invented phase labels',()=>{const timing={verified:true,times:Array.from({length:137},(_,i)=>i/30)},f=S.overview(137/30,timing);assert.equal(f.length,30);assert.equal(f[0].source_frame,0);assert.equal(f.at(-1).source_frame,136);assert.equal(new Set(f.map(v=>v.source_frame)).size,30);assert(f.every(v=>v.labels.every(l=>!A.IDS.includes(l))));assert.throws(()=>S.overview(20,timing));});
