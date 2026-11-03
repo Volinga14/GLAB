@@ -30,13 +30,17 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /** Public OAuth client. HTTPS inference happens natively; credentials never enter WebView JS. */
 public final class NativeAgent {
  private static final String AUTH="https://auth.openai.com", API="https://api.openai.com/v1", SCOPE="openid profile email offline_access resource.invoke chatgpt.tokens.use.direct", KEY="swinglab.oauth.v1";
+ interface Transport {JSONObject get(String url,String token)throws Exception;JSONObject postForm(String url,Map<String,String> params)throws Exception;}
+ interface BrowserLauncher {void launch(Activity activity,String url)throws Exception;}
+ private final Transport transport;private final BrowserLauncher browserLauncher;
  private static NativeAgent instance;
  private final Context context;private final Handler main=new Handler(Looper.getMainLooper());private WeakReference<Activity> activity=new WeakReference<>(null);private WeakReference<WebView> web=new WeakReference<>(null);private final SharedPreferences prefs;private final ExecutorService work=Executors.newCachedThreadPool();
  private final Object lock=new Object(),tokenLock=new Object(),catalogLock=new Object();private final AtomicBoolean busy=new AtomicBoolean(false);private final SecureRandom random=new SecureRandom();
- private JSONObject session,discovery;private JSONArray models=new JSONArray(),ledger=new JSONArray();private ServerSocket listener;private final AtomicBoolean connecting=new AtomicBoolean(false);private String stage="idle",lastError="",lastCode="";private JSONArray diagnostics=new JSONArray();private boolean reauthRequired=false;private final String hostId;private int attempts=0,authGeneration=0;
+ private JSONObject session,discovery;private JSONArray models=new JSONArray(),ledger=new JSONArray();private ServerSocket listener;private final AtomicBoolean connecting=new AtomicBoolean(false);private String stage="idle",lastError="",lastCode="";private JSONArray diagnostics=new JSONArray();private boolean reauthRequired=false;private final String hostId;private int attempts=0,authGeneration=0;private long catalogAt=0;private String catalogToken="";
  static synchronized NativeAgent attach(Activity a,WebView w){if(instance==null)instance=new NativeAgent(a.getApplicationContext());instance.activity=new WeakReference<>(a);instance.web=new WeakReference<>(w);return instance;}
  void detach(Activity a){if(activity.get()==a){activity.clear();web.clear();}}
- private NativeAgent(Context c){context=c;prefs=c.getSharedPreferences("swinglab-native",0);String id=prefs.getString("host_id",null);if(id==null){id="urn:uuid:"+UUID.randomUUID();prefs.edit().putString("host_id",id).commit();}hostId=id;
+ private NativeAgent(Context c){this(c,null,null);}
+ NativeAgent(Context c,Transport transport,BrowserLauncher launcher){this.transport=transport;this.browserLauncher=launcher;context=c;prefs=c.getSharedPreferences("swinglab-native",0);String id=prefs.getString("host_id",null);if(id==null){id="urn:uuid:"+UUID.randomUUID();prefs.edit().putString("host_id",id).commit();}hostId=id;
   try{ledger=new JSONArray(prefs.getString("usage_ledger","[]"));diagnostics=new JSONArray(prefs.getString("connection_diagnostics","[]"));session=loadSession();}catch(Exception e){lastError="No se pudo recuperar la sesión protegida. Vuelve a conectar la cuenta.";lastCode="session_storage";}
   stage=session==null?"idle":"saved_session";
   if(prefs.getBoolean("oauth_pending",false)){prefs.edit().putBoolean("oauth_pending",false).commit();recordFailure("waiting_browser",new TrialException("Android interrumpió la autorización anterior. Pulsa Continue with ChatGPT para intentarlo de nuevo."));}
@@ -51,8 +55,9 @@ public final class NativeAgent {
     case "shareResult":((MainActivity)screen()).shareResult(p.getString("contents"));result=new JSONObject().put("message","Choose where to share the result JSON.");break;
     case "shareReport":((MainActivity)screen()).shareReport(p.getString("html"));result=new JSONObject().put("message","Informe listo para compartir.");break;
     case "printReport":String html=p.getString("html");if(html.length()>16000000)throw new TrialException("El informe es demasiado grande.");Activity target=screen();main.post(()->ReportPrinter.print(target,html));result=new JSONObject().put("message","Selecciona Guardar como PDF.");break;
-    case "connect":result=connect();break;
-    case "models":result=modelList();break;
+    case "connect":result=connect(p.optBoolean("force",false));break;
+    case "resume":result=resumeConnection();break;
+    case "models":result=modelList(true);break;
     case "cancelConnect":cancelAuthorization();result=status();break;
     case "selectModel":result=selectModel(p.optString("model"));break;
     case "review":result=infer(p,false);break;
@@ -60,7 +65,7 @@ public final class NativeAgent {
     case "disconnect":result=disconnect();break;
     default:throw new Exception("Unknown native operation.");
    }respond(requestId,true,result);
-  }catch(Exception e){if(action.equals("models")||action.equals("connect"))recordFailure(stage,e);respond(requestId,false,error(safeError(e)));}});
+  }catch(Exception e){if(action.equals("models")||action.equals("connect")||action.equals("resume"))recordFailure(stage,e);respond(requestId,false,error(safeError(e)));}});
  }
  private JSONObject error(String text){JSONObject o=new JSONObject();try{o.put("error",text);}catch(Exception ignored){}return o;}
  private String safeError(Exception e){if(e instanceof TrialException||e instanceof ConnectionProtocol.ProtocolException)return e.getMessage();if(e instanceof java.net.SocketTimeoutException)return "La conexión agotó el tiempo de espera. Puedes reintentar la conexión; las peticiones de análisis no se repiten automáticamente.";return "No se pudo completar este paso. Comprueba la conexión a Internet y consulta el diagnóstico.";}
@@ -76,7 +81,7 @@ public final class NativeAgent {
  private static String url64(byte[] b){return Base64.encodeToString(b,Base64.URL_SAFE|Base64.NO_WRAP|Base64.NO_PADDING);}
  private static byte[] un64(String s){return Base64.decode(s,Base64.URL_SAFE|Base64.NO_WRAP);}
  private JSONObject discover()throws Exception{if(discovery==null){JSONObject d=get(AUTH+"/.well-known/openid-configuration",null);if(!AUTH.equals(d.optString("issuer"))||!d.optString("jwks_uri").startsWith(AUTH+"/"))throw new TrialException("Unexpected OpenAI identity metadata.");discovery=d;}return discovery;}
- private HttpsURLConnection open(String target,String token)throws Exception{if(!(target.startsWith(AUTH+"/")||target.startsWith(API+"/")))throw new TrialException("Remote destination rejected.");HttpsURLConnection c=(HttpsURLConnection)new URL(target).openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(20000);c.setReadTimeout(30000);c.setRequestProperty("User-Agent","SwingLabAndroidTrial/0.1");if(token!=null)c.setRequestProperty("Authorization","Bearer "+token);return c;}
+ private HttpsURLConnection open(String target,String token)throws Exception{if(!(target.startsWith(AUTH+"/")||target.startsWith(API+"/")))throw new TrialException("Remote destination rejected.");HttpsURLConnection c=(HttpsURLConnection)new URL(target).openConnection();c.setInstanceFollowRedirects(false);c.setConnectTimeout(20000);c.setReadTimeout(30000);c.setRequestProperty("User-Agent","SwingLabAndroid/0.4");if(token!=null)c.setRequestProperty("Authorization","Bearer "+token);return c;}
  private String read(InputStream input,int maximum)throws Exception{if(input==null)return "";try(InputStream in=input;ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] b=new byte[8192];int n;while((n=in.read(b))!=-1){if(out.size()+n>maximum)throw new TrialException("Response exceeded the local size limit.");out.write(b,0,n);}return out.toString("UTF-8");}}
  private void check(HttpsURLConnection c)throws Exception{int status=c.getResponseCode();if(status>=200&&status<300)return;String code="http_"+status;try{JSONObject e=new JSONObject(read(c.getErrorStream(),65536));Object raw=e.opt("error");if(raw instanceof JSONObject)code=((JSONObject)raw).optString("code",code);else if(raw instanceof String)code=(String)raw;}catch(Exception ignored){}if(!code.matches("[A-Za-z0-9_.-]{1,100}"))code="http_"+status;
   if(code.equals("subscription_sharing_user_not_eligible"))throw new TrialException("This account, workspace or client is not eligible. Do not upgrade your plan to troubleshoot this automatically.");
@@ -84,14 +89,14 @@ public final class NativeAgent {
   if(status==401||code.equals("invalid_grant")||code.equals("invalid_token")){synchronized(lock){reauthRequired=true;}throw new TrialException("La sesión ha caducado o fue revocada ("+code+"). Vuelve a autorizar la cuenta una vez.");}
   throw new HttpFailure(status,code);
  }
- private JSONObject get(String target,String token)throws Exception{HttpsURLConnection c=open(target,token);try{check(c);return new JSONObject(read(c.getInputStream(),4000000));}finally{c.disconnect();}}
+ private JSONObject get(String target,String token)throws Exception{if(transport!=null)return transport.get(target,token);HttpsURLConnection c=open(target,token);try{check(c);return new JSONObject(read(c.getInputStream(),4000000));}finally{c.disconnect();}}
  private String form(Map<String,String> p)throws Exception{StringBuilder b=new StringBuilder();for(Map.Entry<String,String> e:p.entrySet()){if(b.length()>0)b.append('&');b.append(URLEncoder.encode(e.getKey(),"UTF-8")).append('=').append(URLEncoder.encode(e.getValue(),"UTF-8"));}return b.toString();}
- private JSONObject postForm(String target,Map<String,String> p)throws Exception{HttpsURLConnection c=open(target,null);try{c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/x-www-form-urlencoded");try(OutputStream out=c.getOutputStream()){out.write(form(p).getBytes(StandardCharsets.UTF_8));}check(c);String body=read(c.getInputStream(),4000000);return body.isEmpty()?new JSONObject():new JSONObject(body);}finally{c.disconnect();}}
+ private JSONObject postForm(String target,Map<String,String> p)throws Exception{if(transport!=null)return transport.postForm(target,p);HttpsURLConnection c=open(target,null);try{c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/x-www-form-urlencoded");try(OutputStream out=c.getOutputStream()){out.write(form(p).getBytes(StandardCharsets.UTF_8));}check(c);String body=read(c.getInputStream(),4000000);return body.isEmpty()?new JSONObject():new JSONObject(body);}finally{c.disconnect();}}
  private JSONObject status()throws Exception{synchronized(lock){JSONObject r=new JSONObject();r.put("connected",session!=null);r.put("enabled",session!=null&&ConnectionProtocol.planEnabled(session)&&!reauthRequired);r.put("account",session==null?JSONObject.NULL:session.optString("email","Cuenta conectada"));r.put("stage",stage);r.put("connecting",connecting.get());r.put("reauth_required",reauthRequired);r.put("error",lastError);r.put("error_code",lastCode);r.put("models",new JSONArray(models.toString()));r.put("selected_model",prefs.getString("selected_model",""));r.put("diagnostics",new JSONArray(diagnostics.toString()));r.put("ledger",new JSONArray(ledger.toString()));r.put("remaining_attempts",Math.max(0,3-attempts));return r;}}
  private boolean hasScope(String scopes,String expected){return ConnectionProtocol.hasScope(scopes,expected);}
- private JSONObject connect()throws Exception{
+ private JSONObject connect(boolean force)throws Exception{
   if(busy.get())throw new TrialException("Espera a que termine el análisis actual.");
-  synchronized(lock){if(session!=null&&ConnectionProtocol.planEnabled(session)&&!reauthRequired)return new JSONObject().put("message","Tu sesión está guardada. Recuperando los modelos…").put("resume",true);}
+  synchronized(lock){if(!force&&session!=null&&ConnectionProtocol.planEnabled(session)&&!reauthRequired)return new JSONObject().put("message","Tu sesión está guardada. Recuperando los modelos…").put("resume",true);}
   if(!connecting.compareAndSet(false,true))return new JSONObject().put("message","La autorización ya está abierta en el navegador. Complétala y vuelve a SwingLab.");
   ServerSocket created=null;
   try{
@@ -112,27 +117,41 @@ public final class NativeAgent {
       try(Socket socket=accepted){
        socket.setSoTimeout(5000);BufferedReader input=new BufferedReader(new InputStreamReader(socket.getInputStream(),StandardCharsets.US_ASCII));String line=readRequestLine(input);String[] parts=line.split(" ");Uri uri=parts.length>1?Uri.parse("http://127.0.0.1"+parts[1]):Uri.EMPTY;
        boolean valid=parts.length>1&&parts[0].equals("GET")&&"/auth/callback".equals(uri.getPath())&&ConnectionProtocol.matchesState(state,uri.getQueryParameter("state"));
-       byte[] body=(valid?"<!doctype html><html lang='es'><meta name='viewport' content='width=device-width,initial-scale=1'><title>SwingLab</title><body style='font:20px sans-serif;padding:32px'><h1>Vuelve a SwingLab</h1><p>La app está verificando la autorización y cargará los modelos automáticamente.</p><p><a href='swinglab-beta://auth/return'>Abrir SwingLab</a></p><p>Si no se abre, vuelve a la app desde las aplicaciones recientes.</p></body></html>":"Invalid callback.").getBytes(StandardCharsets.UTF_8);
-       OutputStream out=socket.getOutputStream();out.write(("HTTP/1.1 "+(valid?"200 OK":"400 Bad Request")+"\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\nContent-Length: "+body.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.write(body);out.flush();if(!valid)continue;completed=true;
-       if(uri.getQueryParameter("error")!=null)throw new TrialException("No se autorizó la conexión. Puedes intentarlo de nuevo.");
-       String client=ConnectionProtocol.issuedClient(existing,uri.getQueryParameter("client_id"));prefs.edit().putString("client_id",client).commit();
-       String code=uri.getQueryParameter("code");if(code==null)throw new TrialException("La autorización volvió sin un código válido.");
-       phase("exchange_code");Map<String,String> request=new LinkedHashMap<>();request.put("grant_type","authorization_code");request.put("client_id",client);request.put("code",code);request.put("code_verifier",verifier);request.put("redirect_uri",redirect);request.put("resource",API);
-       JSONObject tokens=postForm(AUTH+"/api/accounts/oauth/token",request);phase("verify_identity");JSONObject identity=validateIdentity(tokens.optString("id_token"),client,nonce);
-       if(expectedSubject!=null&&!expectedSubject.equals(identity.optString("sub")))throw new TrialException("La cuenta no coincide con el registro guardado. Usa la misma cuenta de ChatGPT.");
-       ConnectionProtocol.validateTokens(tokens);tokens.put("client_id",client);tokens.put("email",identity.optString("email","Cuenta conectada"));tokens.put("subject",identity.getString("sub"));tokens.put("expires_at",System.currentTimeMillis()+tokens.getLong("expires_in")*1000);
-       phase("save_session");synchronized(tokenLock){synchronized(lock){if(generation!=authGeneration||!connecting.get())throw new TrialException("La autorización se canceló.");saveSession(tokens);session=tokens;reauthRequired=false;models=new JSONArray();prefs.edit().putString("subject",identity.getString("sub")).commit();}}
-       phase(ConnectionProtocol.planEnabled(tokens)?"saved_session":"permission_required");emit("swinglab:native-connected",status());
+       // Consume the complete HTTP header before replying/closing the loopback socket.
+       int headerBytes=0;String header;while((header=input.readLine())!=null&&!header.isEmpty()){headerBytes+=header.length();if(headerBytes>16384)throw new TrialException("Callback demasiado grande.");}
+       if(!valid){writeCallback(socket,false,"La respuesta no pertenece a esta autorización.",400);continue;}
+       completed=true;
+       try{
+        if(uri.getQueryParameter("error")!=null)throw new TrialException("No se autorizó la conexión. Puedes intentarlo de nuevo.");
+        String client=ConnectionProtocol.issuedClient(existing,uri.getQueryParameter("client_id"));synchronized(lock){if(generation!=authGeneration)throw new TrialException("La autorización se canceló.");prefs.edit().putString("client_id",client).commit();}
+        String code=uri.getQueryParameter("code");if(code==null)throw new TrialException("La autorización volvió sin un código válido.");
+        phase("exchange_code");Map<String,String> request=new LinkedHashMap<>();request.put("grant_type","authorization_code");request.put("client_id",client);request.put("code",code);request.put("code_verifier",verifier);request.put("redirect_uri",redirect);request.put("resource",API);
+        JSONObject tokens=postForm(AUTH+"/api/accounts/oauth/token",request);phase("verify_identity");JSONObject identity=validateIdentity(tokens.optString("id_token"),client,nonce);
+        if(expectedSubject!=null&&!expectedSubject.equals(identity.optString("sub")))throw new TrialException("La cuenta no coincide con el registro guardado. Usa la misma cuenta de ChatGPT.");
+        ConnectionProtocol.validateTokens(tokens);tokens.put("client_id",client);tokens.put("email",identity.optString("email","Cuenta conectada"));tokens.put("subject",identity.getString("sub"));tokens.put("expires_at",System.currentTimeMillis()+tokens.getLong("expires_in")*1000);
+        phase("save_session");synchronized(tokenLock){synchronized(lock){if(generation!=authGeneration||!connecting.get())throw new TrialException("La autorización se canceló.");saveSession(tokens);session=tokens;reauthRequired=false;models=new JSONArray();prefs.edit().putString("subject",identity.getString("sub")).commit();}}
+        if(ConnectionProtocol.planEnabled(tokens)){modelList(false);}else{phase("permission_required");throw new TrialException("Cuenta guardada, pero falta el permiso para usar tu plan de ChatGPT. Vuelve a autorizarlo desde la app.");}
+        writeCallback(socket,true,"Tu cuenta está guardada y el análisis está preparado.",200);
+        emit("swinglab:native-connected",status());
+       }catch(Exception e){if(generation==authGeneration)recordFailure(stage,e);writeCallback(socket,false,safeError(e),200);}
+       finally{if(generation==authGeneration&&browserLauncher==null)main.post(()->{try{Activity a=activity.get();if(a!=null)a.startActivity(new Intent(a,MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP|Intent.FLAG_ACTIVITY_SINGLE_TOP));}catch(Exception ignored){}});}
+
       }
      }
      if(!completed&&connecting.get())throw new TrialException("La autorización no volvió a la app en diez minutos. Pulsa Continue with ChatGPT para reiniciarla.");
     }catch(Exception e){if(connecting.get()&&generation==authGeneration)recordFailure(stage,e);}
     finally{try{server.close();}catch(Exception ignored){}synchronized(lock){if(generation==authGeneration){connecting.set(false);prefs.edit().putBoolean("oauth_pending",false).commit();context.stopService(new Intent(context,OAuthKeepAliveService.class));}}emit("swinglab:native-state",new JSONObject());}
    });
-   main.post(()->{try{origin.startActivity(new Intent(Intent.ACTION_VIEW,Uri.parse(address)));}catch(Exception e){recordFailure("open_browser",new TrialException("No se pudo abrir el navegador. Comprueba que tienes uno instalado."));cancelAuthorization();}});
+   main.post(()->{try{if(browserLauncher!=null)browserLauncher.launch(origin,address);else new androidx.browser.customtabs.CustomTabsIntent.Builder().setShowTitle(true).setSendToExternalDefaultHandlerEnabled(true).build().launchUrl(origin,Uri.parse(address));}catch(Exception e){recordFailure("open_browser",new TrialException("No se pudo abrir el navegador. Comprueba que tienes uno instalado."));cancelAuthorization();}});
    return new JSONObject().put("message","Completa la autorización en el navegador y vuelve a SwingLab. Los modelos se cargarán automáticamente.");
   }catch(Exception e){connecting.set(false);prefs.edit().putBoolean("oauth_pending",false).commit();if(created!=null)try{created.close();}catch(Exception ignored){}context.stopService(new Intent(context,OAuthKeepAliveService.class));throw e;}
  }
+ private void writeCallback(Socket socket,boolean success,String message,int code)throws Exception{
+  String escaped=message.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;");
+  String body="<!doctype html><html lang='es'><meta name='viewport' content='width=device-width,initial-scale=1'><title>SwingLab</title><body style='font:18px sans-serif;padding:32px;background:#f3f6ed;color:#214c39'><h1>"+(success?"Conexión lista":"No se completó la conexión")+"</h1><p>"+escaped+"</p><p><a style='display:inline-block;padding:16px;background:#214c39;color:white;border-radius:12px' href='swinglab-beta://auth/return'>Volver a SwingLab</a></p><p>Si el navegador sigue abierto, pulsa Volver a SwingLab.</p></body></html>";
+  byte[] bytes=body.getBytes(StandardCharsets.UTF_8);OutputStream out=socket.getOutputStream();out.write(("HTTP/1.1 "+code+" "+(code==200?"OK":"Bad Request")+"\r\nContent-Type: text/html; charset=utf-8\r\nCache-Control: no-store\r\nContent-Security-Policy: default-src 'none'; style-src 'unsafe-inline'\r\nContent-Length: "+bytes.length+"\r\nConnection: close\r\n\r\n").getBytes(StandardCharsets.US_ASCII));out.write(bytes);out.flush();
+ }
+ private JSONObject resumeConnection()throws Exception{boolean canResume;synchronized(lock){canResume=session!=null&&ConnectionProtocol.planEnabled(session)&&!reauthRequired&&!connecting.get();}if(canResume)modelList(false);return status();}
  private String readRequestLine(BufferedReader in)throws Exception{StringBuilder b=new StringBuilder();int c;while((c=in.read())!=-1){if(c=='\n')break;if(c!='\r')b.append((char)c);if(b.length()>16384)throw new TrialException("Callback demasiado grande.");}return b.toString();}
  void cancelAuthorization(){synchronized(lock){authGeneration++;connecting.set(false);stage=session==null?"idle":"saved_session";}if(listener!=null)try{listener.close();}catch(Exception ignored){}prefs.edit().putBoolean("oauth_pending",false).commit();context.stopService(new Intent(context,OAuthKeepAliveService.class));}
  private JSONObject validateIdentity(String token,String client,String nonce)throws Exception{
@@ -150,7 +169,7 @@ public final class NativeAgent {
    JSONObject renewal=postForm(AUTH+"/api/accounts/oauth/token",p),candidate=ConnectionProtocol.mergeRefresh(current,renewal,System.currentTimeMillis());
    synchronized(lock){if(session!=current)throw new TrialException("La cuenta cambió durante la renovación.");saveSession(candidate);session=candidate;current=candidate;reauthRequired=false;}
   }if(!ConnectionProtocol.planEnabled(current)){phase("permission_required");throw new TrialException("Falta el permiso para usar tu plan. Pulsa Continue with ChatGPT para autorizarlo.");}return current.getString("access_token");}}
- private JSONObject modelList()throws Exception{synchronized(catalogLock){String token=accessToken();phase("fetch_models");JSONArray clean=ConnectionProtocol.catalog(get(API+"/models",token));synchronized(lock){if(session==null||!token.equals(session.optString("access_token")))throw new TrialException("La sesión cambió al cargar los modelos.");models=clean;String selected=prefs.getString("selected_model","");boolean found=false;for(int i=0;i<models.length();i++)if(selected.equals(models.getJSONObject(i).getString("slug")))found=true;if(!found)prefs.edit().putString("selected_model",models.getJSONObject(0).getString("slug")).apply();}phase("ready");return new JSONObject().put("models",clean).put("selected_model",prefs.getString("selected_model",""));}}
+ private JSONObject modelList(boolean force)throws Exception{synchronized(catalogLock){String token=accessToken();synchronized(lock){if(!force&&models.length()>0&&token.equals(catalogToken)&&System.currentTimeMillis()-catalogAt<600000){phase("ready");return new JSONObject().put("models",new JSONArray(models.toString())).put("selected_model",prefs.getString("selected_model",""));}}phase("fetch_models");JSONArray clean=ConnectionProtocol.catalog(get(API+"/models",token));synchronized(lock){if(session==null||!token.equals(session.optString("access_token")))throw new TrialException("La sesión cambió al cargar los modelos.");models=clean;catalogAt=System.currentTimeMillis();catalogToken=token;String selected=prefs.getString("selected_model","");boolean found=false;for(int i=0;i<models.length();i++)if(selected.equals(models.getJSONObject(i).getString("slug")))found=true;if(!found)prefs.edit().putString("selected_model",models.getJSONObject(0).getString("slug")).apply();}phase("ready");return new JSONObject().put("models",clean).put("selected_model",prefs.getString("selected_model",""));}}
  private JSONObject selectModel(String slug)throws Exception{synchronized(lock){for(int i=0;i<models.length();i++)if(slug.equals(models.getJSONObject(i).getString("slug"))){prefs.edit().putString("selected_model",slug).apply();return new JSONObject().put("selected_model",slug);}throw new TrialException("Selecciona uno de los modelos disponibles.");}}
  private JSONObject infer(JSONObject p,boolean test)throws Exception{
   if(!busy.compareAndSet(false,true))throw new TrialException("An inference is already running.");JSONObject record=null;long started=0;

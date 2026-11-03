@@ -413,6 +413,7 @@ document.addEventListener('keydown',e=>{const overlay=document.querySelector('.f
 /* Agent review uses the same session, storage, and fullscreen editor. */
 window.SwingLabAgentBridge={
  current:()=>state.current?clone(state.current):null,file:()=>state.videoFile,busy:()=>state.engineBusy||state.storageBusy,
+ async prepareForAgent(){if(!state.current||!state.videoFile)throw Error('Carga un vídeo primero.');if(!phases.every(p=>Number.isFinite(state.current.phases?.[p])))await analyzeWithEngine(state.videoFile);if(!phases.every(p=>Number.isFinite(state.current.phases?.[p])))throw Error('No se han podido localizar todos los momentos del swing. Revisa el vídeo o marca el impacto y vuelve a intentarlo.');await SwingLabAgent.prepare();},
  playable:()=>!!state.videoFile&&video.readyState>=2,
  mode(mode){if(state.current)state.current.analysisMode=mode;updateSessionStatus()},
  startLocal(){if(state.videoFile&&video.readyState>=2){go('review');window.SwingLabEditor?.open?.()}state.engineGuide=true;state.reviewStep=Number.isFinite(state.current?.impactReference?.time)?'analyze':'impact';updateSessionStatus();window.SwingLabEditor?.refresh?.()},

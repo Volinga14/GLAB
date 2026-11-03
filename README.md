@@ -1,3 +1,11 @@
+## v43 · Conectar y analizar
+
+Android 0.4 exposes ChatGPT account access on the home header before a video is loaded. The review sheet leads with the account and a single consent-bound analysis action; frame preparation and model selection are automatic, with manual controls in collapsed sections. A requested review continues after sign-in only while its original video and explicit consent remain current. Closing the review or changing the video cancels the pending upload; inference is never retried automatically.
+
+Browser sign-in uses Custom Tabs. The loopback callback consumes the HTTP request, verifies the ID token, commits encrypted credentials and discovers a model before displaying success. It brings the app forward and retains a manual return link when the browser restricts app switching. Model discovery has an in-process cache; reopening uses the saved renewable account.
+
+The Android test suite now exercises real loopback sockets, Android Keystore, OIDC signatures/nonces, durable restart, token rotation and recovery from a failed catalog request using simulated identity/model responses. These tests never contact the provider or send an inference. Real account eligibility and Chrome behavior still need a device check.
+
 ## v40 · Freely adjustable playback tray
 
 Drag the playback handle to any lower height, down to a 22 px grip; tap the video to lower or restore it. Review options and manual phase marking are in the side Options panel. The denser tray aligns playback speed with a thicker timeline.

@@ -99,5 +99,5 @@ function init(){
  renderReport();
 }
 if(typeof document!=='undefined')document.addEventListener('DOMContentLoaded',init);
-return {PHASES,IDS,AREAS,fingerprint,normalizeContext,parseReview,normalizeState,renderReport,exportReport,openModes,openAgent,instructions,importResult};
+return {PHASES,IDS,AREAS,fingerprint,normalizeContext,parseReview,normalizeState,renderReport,exportReport,openModes,openAgent,prepare,instructions,importResult};
 });
