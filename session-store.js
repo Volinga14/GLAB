@@ -27,7 +27,7 @@
     }).slice(0, 1000).map(clone) : [];
     return {
       version: 1, id: String(value.id), title: String(value.title || 'Swing session'),
-      fileName: String(value.fileName || ''),
+      fileName: String(value.fileName || ''), club:typeof value.club==='string'?value.club.slice(0,60):'',
       date: Number.isFinite(Date.parse(value.date)) ? value.date : new Date().toISOString(),
       phases, captures, notes: typeof value.notes === 'string' ? value.notes : '',
       thumb: image(value.thumb), drawings, captureDrawings:Object.fromEntries(PHASES.filter(p=>captures[p]).map(p=>[p,normalize({id:'capture',drawings:value.captureDrawings?.[p]}).drawings])),
@@ -135,7 +135,9 @@
     function importReferences(records){
       return transaction(['meta'],'readwrite',(tx,done)=>{const meta=tx.objectStore('meta');meta.get('reviewed-references-v1').onsuccess=e=>{try{const merged=SwingLabReferences.merge(e.target.result||[],records);meta.put(merged,'reviewed-references-v1');done(merged)}catch{tx.abort()}}});
     }
-    return { init, list, save, video, remove, clear, feedback, references, importReferences, updateThumbnail };
+    const practiceJournal=()=>transaction(['meta'],'readonly',(tx,done)=>{tx.objectStore('meta').get('practice-journal-v1').onsuccess=e=>done(SwingLabPractice.normalizeJournal(e.target.result))});
+    const recordPractice=entry=>transaction(['meta'],'readwrite',(tx,done)=>{const meta=tx.objectStore('meta');meta.get('practice-journal-v1').onsuccess=e=>{try{const value=SwingLabPractice.addEntry(e.target.result,entry);meta.put(value,'practice-journal-v1');done(value)}catch{tx.abort()}}});
+    return { init, list, save, video, remove, clear, feedback, references, importReferences, updateThumbnail,practiceJournal,recordPractice };
   }
   globalThis.SwingLabStorage = { createStore, normalize, clone };
 })();

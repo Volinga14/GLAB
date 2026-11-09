@@ -31,3 +31,14 @@ DEVUELVE SOLO JSON con estas claves (sin Markdown):
  "additional_frames":[{"from_s":0.0,"to_s":0.2,"reason":"..."}]
 }
 Incluye exactamente las seis áreas y las cinco fases. Usa null para notas, tiempos o referencias de fase no justificables. No atribuyas validación clínica ni exactitud científica al informe.
+
+
+BIBLIOTECA DE EJERCICIOS SWINGLAB
+Cada prioridad puede incluir area (setup, takeaway, backswing, transition, impact, finish) y drill_id (SL01..SL06 o null). Asigna drill_id solo cuando el ejercicio sea compatible con la evidencia y sus instrucciones; si no, usa null y escribe un ejercicio personal. No elijas uno solo para mostrar una animación. Las demostraciones son esquemas de enseñanza, no mediciones biomecánicas.
+SL01 / setup: Dos referencias paralelas en el suelo para repetir preparación y orientación.
+SL02 / takeaway: Salida lenta coordinando palmas juntas y giro corto del tronco, sin bola.
+SL03 / backswing: Medios swings suaves de amplitud cómoda y parecida en ambos sentidos.
+SL04 / transition: Subida corta con wedge, pausa voluntaria de un segundo, salida suave y equilibrada.
+SL05 / impact: Solo ritmo y continuidad de ensayos suaves atrás-delante; NO corrige ni diagnostica impacto, cara, trayectoria o contacto.
+SL06 / finish: Ensayos cortos sin bola con base estrecha cómoda y final estable; no prescribas si hay inestabilidad o limitación.
+Enfoca la primera prioridad en el cambio más útil respaldado. Da un criterio observable en vídeo, una dosis prudente y pasos realizables. No prescribas cambios anatómicos ni fuerces amplitud.

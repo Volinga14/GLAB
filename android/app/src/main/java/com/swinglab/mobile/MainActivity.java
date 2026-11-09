@@ -58,11 +58,12 @@ public class MainActivity extends Activity {
  void shareResult(String contents)throws Exception{
   if(contents.length()>2000000)throw new Exception("Export too large");
   java.io.File directory=new java.io.File(getCacheDir(),"agent-exports");directory.mkdirs();
-  java.io.File file=new java.io.File(directory,"SwingLab_resultado_android.json");
+  boolean learning="swinglab-personal-learning/1".equals(new org.json.JSONObject(contents).optString("schema"));
+  java.io.File file=new java.io.File(directory,learning?"SwingLab_mi_aprendizaje.json":"SwingLab_resultado_android.json");
   try(java.io.FileOutputStream out=new java.io.FileOutputStream(file)){out.write(contents.getBytes(java.nio.charset.StandardCharsets.UTF_8));}
   Uri uri=androidx.core.content.FileProvider.getUriForFile(this,getPackageName()+".files",file);
   Intent share=new Intent(Intent.ACTION_SEND).setType("application/json").putExtra(Intent.EXTRA_STREAM,uri).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-  runOnUiThread(()->startActivity(Intent.createChooser(share,"Share SwingLab result")));
+  runOnUiThread(()->startActivity(Intent.createChooser(share,"Guardar o compartir SwingLab")));
  }
  void shareReport(String html)throws Exception{
   if(html.length()>16000000)throw new Exception("Report too large");

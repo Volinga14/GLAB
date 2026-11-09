@@ -210,3 +210,9 @@ La nota es orientativa y se calcula como media de al menos tres áreas evaluable
 **Guardar / compartir informe** genera HTML autónomo con fotografías incluidas. **Exportar PDF** abre la impresión local: en Android se utiliza el diálogo del sistema, que permite Guardar como PDF. En la web depende de las opciones de impresión del navegador. No se usa un servicio externo para generar documentos.
 
 Android 0.3 actualiza el paquete de Beta 0.2 con la misma firma y conserva sus datos y sesión. Su nombre visible pasa a SwingLab. La conexión directa con la cuenta está en la app Android; la web mantiene la opción de exportar/importar revisiones.
+
+
+## Product update 0.44 / Android 0.5
+Three destinations: Analizar, Mi progreso and Entrenar. Fullscreen editing keeps analysis/report visible and places drawing, framing and manual correction inside Herramientas. Existing sessions and encrypted account state keep their identifiers and storage.
+Reports lead with the first evidence-backed priority, with secondary priorities and area ratings in details. Practice PDF omits the phase audit; technical PDF retains it. Both embed original evidence. Six source-linked drills have original interactive schematic demonstrations (not photographic or biomechanical references), step controls, practice doses and observable criteria. Only an explicit validated drill_id binds a report exercise to a catalog demonstration; custom prescriptions remain custom.
+The existing IndexedDB meta store persists practice logs and review-specific explicit feedback. Exporting personal learning produces a private JSON dataset without video or tokens; it does not automatically train a model or change scores. Grade trends require the same view, club, rubric and evaluated areas; ungraded sessions are excluded. Local practice logs do not increase technical grades.
