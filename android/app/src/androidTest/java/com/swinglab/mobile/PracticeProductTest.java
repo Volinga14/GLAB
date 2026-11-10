@@ -26,12 +26,13 @@ public class PracticeProductTest {
  @Test public void realPracticeControlsSaveAndSurviveActivityRestart()throws Exception{
   try(ActivityScenario<MainActivity> a=ActivityScenario.launch(MainActivity.class)){
    await(a,"typeof SwingLabPracticeUI==='object' && document.readyState==='complete'");
-   js(a,"document.querySelector('[data-action=\"go-home\"]').click();document.querySelector('.nav-item[data-nav=\"train\"]').click();");
+   js(a,"document.querySelector('[data-action=\"go-home\"]').click();document.querySelector('.nav-item[data-nav=\"profile\"]').click();document.querySelector('.training-entry [data-nav=\"train\"]').click();");
    await(a,"document.querySelectorAll('[data-drill]').length===6");
    js(a,"document.querySelector('[data-drill=\"SL02\"]').click();");
    await(a,"!!document.getElementById('demoPlay')");
+   assertEquals("true",js(a,"document.querySelector('#drillVisual image').getAttribute('href').startsWith('data:image/webp;base64,')"));
    js(a,"document.getElementById('demoPlay').click();");assertEquals("\"Pausar\"",js(a,"document.getElementById('demoPlay').textContent"));
-   js(a,"document.querySelector('[data-demo-step=\"1\"]').click();");assertEquals("\"50\"",js(a,"document.getElementById('demoPosition').value"));
+   js(a,"document.querySelector('[data-demo-step=\"1\"]').click();");assertEquals("\"50\"",js(a,"document.getElementById('demoPosition').value"));assertEquals("true",js(a,"document.getElementById('drillCue').textContent.includes('Giro corto')"));
    js(a,"document.getElementById('practiceMinutes').value='9';document.getElementById('practiceOutcome').value='working';document.getElementById('practiceNote').value='Android persistence QA';document.getElementById('practiceSave').click();");
    await(a,"document.getElementById('practiceSave').textContent==='Práctica guardada'");
    a.recreate();await(a,"typeof SwingLabProductBridge==='object' && document.readyState==='complete'");
@@ -39,7 +40,7 @@ public class PracticeProductTest {
    await(a,"!!window.__practiceQA");
    JSONObject record=new JSONObject((String)new org.json.JSONTokener(js(a,"JSON.stringify(window.__practiceQA)")).nextValue());
    assertEquals(9,record.getInt("minutes"));assertEquals("SL02",record.getString("drill_id"));assertEquals("working",record.getString("outcome"));
-   js(a,"document.querySelector('.nav-item[data-nav=\"train\"]').click();");await(a,"document.querySelectorAll('[data-drill]').length===6");
+   js(a,"document.querySelector('.nav-item[data-nav=\"profile\"]').click();document.querySelector('.training-entry [data-nav=\"train\"]').click();");await(a,"document.querySelectorAll('[data-drill]').length===6");
    assertEquals("true",js(a,"document.getElementById('practiceContent').textContent.includes('Criterio todavía en práctica')"));
   }
  }
